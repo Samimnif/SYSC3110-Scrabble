@@ -4,6 +4,4 @@ public class User {
     public User(Rack userTack) {
         this.userTack = userTack;
     }
-
-
 }
