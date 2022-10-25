@@ -22,9 +22,9 @@ Java 17 or later must be installed
 
 
 ## Authors:
-Keya Patel
-Hadi Srour
-Nikita Sara Vijay
-Sami Mnif
+Keya Patel <br>
+Hadi Srour <br>
+Nikita Sara Vijay <br>
+Sami Mnif <br>
 
-Copyright 2022 Hadi Srour, Keya Patel, Nikita Sara Vijay, Sami Mnif
+Copyright© 2022 Hadi Srour, Keya Patel, Nikita Sara Vijay, Sami Mnif
