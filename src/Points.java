@@ -1,9 +1,19 @@
+/**
+ * Points class that has all teh points for each letter
+ *
+ * @author Sami Mnif
+ * @version 2022-10-16
+ */
+
 import java.util.HashMap;
 
 public class Points {
     private HashMap<Character, Integer> alphabet; //
     private final char[] alphabetChar = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'};
 
+    /**
+     * the constructor sets up the points for each character
+     */
     public Points() {
         alphabet = new HashMap<>(17);
         alphabet.put('A',1);
@@ -35,6 +45,12 @@ public class Points {
         alphabet.put('_',0);
     }
 
+    /**
+     * the getPoint method returns the points of a specific letter
+     *
+     * @param letter the letter we want to get its points
+     * @return int teh point of the letter
+     */
     public int getPoint(char letter){
         return  alphabet.get(letter);
     }

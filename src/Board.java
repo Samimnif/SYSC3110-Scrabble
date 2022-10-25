@@ -7,11 +7,9 @@
  * @version 2022-10-16
  */
 
-import com.sun.org.apache.regexp.internal.RE;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Scanner;
 import java.io.File;
 import java.util.Stack;
@@ -340,6 +338,16 @@ public class Board {
         System.out.println(RESET);
     }
 
+    /**
+     * The coordinates method takes a string of coordinates and then converts it into two int.
+     * One is the column index and the other is row index.
+     * The method also detects if the coordinates is meant to be horizontal vertical direction.
+     * Note: the column string is in characters.
+     * Example: A0
+     *
+     * @param coordinates a string that has the coordinates in row and column
+     * @return boolean, true if the coordinates are valid, false otherwise.
+     */
     private boolean coordinates(String coordinates){
         int c = -1;
         int r = -1;
@@ -365,6 +373,13 @@ public class Board {
         return true;
     }
 
+    /**
+     * The place method will place the specific letter into the board at a specific coordinates (index).
+     * If it is multiple characters, then it will add it sequentially in the direction teh coordinates intend.
+     *
+     * @param command command submitted by the user
+     * @param user the user who submitted the command
+     */
     private void place(Command command, User user){
         if (!coordinates(command.getThirdWord())){
             System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
@@ -390,11 +405,22 @@ public class Board {
         }
     }
 
+    /**
+     * The getInput method get Input from the user using the command object which later uses the parse the input.
+     *
+     * @param user the user who we will get the input from
+     * @return the Command we received from the user (to parse later)
+     */
     private Command getInput(User user){
         Command command = user.getInput();
         return command;
     }
 
+    /**
+     * The play method is the main method that initializes the users, adds their racks and fill them.
+     * and then start playing., Swicthing turns and printing important information about their score and printing board.
+     *
+     */
     public void play(){
         User user1 = new User();
         User user2 = new User();

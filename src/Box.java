@@ -1,5 +1,5 @@
 /**
- *Box class that contains the letter
+ * Box class that contains the letter
  *
  * @author Sami Mnif
  * @version 2022-10-16

@@ -1,4 +1,8 @@
-import java.util.ArrayList;
+/**
+ * Teh Bag contains the all the letters (each with specific quantity) to be used in teh game
+ *
+ */
+
 import java.util.HashMap;
 import java.util.Random;
 
@@ -6,6 +10,9 @@ public class Bag {
     private HashMap<Character, Integer> alphabet; //
     private final char[] alphabetChar = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'};
 
+    /**
+     * Constructor that initializes the number of letters for each character.
+     */
     public Bag() {
         alphabet = new HashMap<>(17);
         alphabet.put('A',9);
@@ -37,6 +44,12 @@ public class Bag {
         alphabet.put('_',2);
     }
 
+    /**
+     * teh removeLetter, removes the specific letter from the bag.
+     *
+     * @param letter gets the letter to be removed from the bag (by reducing the number)
+     * @return boolean if successful, false otherwise.
+     */
     private boolean removeLetter(char letter){
         int temp = alphabet.get(letter);
         if (temp > 0){
@@ -47,6 +60,11 @@ public class Bag {
         return false;
     }
 
+    /**
+     * the getRandom method uses random to get a random letter from teh bag
+     *
+     * @return the random character
+     */
     public Character getRandom(){
         Random rnd = new Random();
         int randomLetter;
