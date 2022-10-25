@@ -1,0 +1,10 @@
+  sss      ccc   rrrrrrrrr      aaaaaa    bbbbbbbb    bbbbbbbb   ll         eeeeeeeee
+ ss  s   cc   cc rr       rr  aa      aa  bb     bb   bb     bb  ll         ee
+ss      cc       rr       rr  aa      aa  bb      bb  bb      bb ll         ee
+sss     cc       rr      rr   aa      aa  bb     bb   bb     bb  ll         ee
+ ss     cc       rrrrrrrrr    aaaaaaaaaa  bbbbbbbb    bbbbbbbb   ll         eeeeeeeee
+   sss  cc       rr     rr    aa      aa  bb     bb   bb     bb  ll         ee
+     ss cc       rr      rr   aa      aa  bb      bb  bb      bb ll         ee
+ss   s   cc   cc rr       rr  aa      aa  bb     bb   bb     bb  ll         ee
+  sss      ccc   rr        rr aa      aa  bbbbbbbb    bbbbbbbb   llllllllll eeeeeeeee
+           
