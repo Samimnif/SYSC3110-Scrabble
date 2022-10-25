@@ -17,7 +17,7 @@ Java 17 or later must be installed
 
 ## Usage:
 1. Download the SYSC3110-Scrabble repository
-2. Run the Play.Java class to begin the game
+2. Run the Board.Java class to begin the game
 3. When program runs type "help" in the command line to see the avaialble game commands
 
 
