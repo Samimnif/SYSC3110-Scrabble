@@ -284,6 +284,107 @@ public class Board {
         return false;
     }
 
+    public boolean checkBoard(){
+        User user;
+        if (turn1) user = user1;
+        else user = user2;
+        Stack<String> temp = new Stack<>();
+        coordinates(edits.get(0));
+        int column = columnSelect;
+        int row = rowSelect;
+        boolean hDirection = false;
+        String word = "";
+        int majorityV = 0;
+        int majorityH = 0;
+
+        for (int i = 1; i < edits.size(); i++) {
+            if (coordinates(edits.get(i))){
+                if (column == columnSelect){
+                    //System.out.println("Same column"+Integer.toString(column));
+                    //hDirection = false;
+                    majorityV++;
+                }
+                else if (row == rowSelect){
+                    //System.out.println("Same row"+Integer.toString(row));
+                    //hDirection = true;
+                    majorityH++;
+                }
+                column = columnSelect;
+                row = rowSelect;
+            }
+        }
+        if (majorityV > majorityH){
+            hDirection = false;
+        }
+        else hDirection = true;
+        for(int r = 0; r < boardSize; r++) {
+            for (int c = 0; c < boardSize; c++) {
+                if (hDirection && r == row) {
+                    if (this.board.get(r).get(c).getLetter() != '□'){
+                        word += this.board.get(r).get(c).getLetter();
+                        for (int i = 1; i < edits.size(); i++) {
+                            if (coordinates(edits.get(i))){
+                                if (columnSelect == c && rowSelect == r){
+                                    temp.push(edits.remove(i));
+                                }
+                            }
+                        }
+                    }
+                    else if (this.board.get(r).get(c).getLetter() == '□' && c < column){
+                        //System.out.println("Word so far: "+word);
+                        if (!(word.equals(""))){
+                            word = "";
+                        }
+                    }
+                }
+                else if (!hDirection && c == column){
+                    if (this.board.get(r).get(c).getLetter() != '□'){
+                        word += this.board.get(r).get(c).getLetter();
+                        for (int i = 1; i < edits.size(); i++) {
+                            if (coordinates(edits.get(i))){
+                                if (columnSelect == c && rowSelect == r){
+                                    temp.push(edits.remove(i));
+                                }
+                            }
+                        }
+                    }
+                    else if (this.board.get(r).get(c).getLetter() == '□' && r < row){
+                        //System.out.println("Word so far: "+word);
+                        if (!(word.equals(""))){
+                            word = "";
+                        }
+                    }
+                }
+            }
+        }
+        WordList checker = new WordList();
+        //System.out.println(word +" "+hDirection+temp);
+        if (word.length()<2){
+            System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+        }
+        else if (checker.isWord(word.toLowerCase())){
+            System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+            for (int i = 0; i < word.length(); i++) {
+                user.addScore(word.charAt(i));
+            }
+            System.out.print(PURPLE);
+            user.showScore();
+            System.out.print(RESET);
+
+            return true;
+        }
+        else{
+            System.out.println(RED+"Sorry the word doesn't exist in out dictionary"+RESET);
+        }
+        if (edits.size() > 0){
+            System.out.println(RED+"Your characters are not forming a word"+RESET);
+        }
+        for (int i = 0; i < temp.size(); i++) {
+            edits.push(temp.pop());
+        }
+        return false;
+    }
+
     /**
      * the charBack method takes the letters that the user placed on board back to their rack.
      *
@@ -330,10 +431,36 @@ public class Board {
             }
         }
         edits.clear();
-        if (turn1){
-            turn1 = false;
-        }
+        if (turn1) turn1 = false;
         else turn1 = true;
+    }
+
+    public void switchTurn(){
+        User user;
+        if (turn1) user = user1;
+        else user = user2;
+        if (user.getRackSize() < 7){
+            for (int i = 0; i < 7-user.getRackSize(); i++) {
+                user.addLetter(lettersBag.getRandom());
+            }
+        }
+        edits.clear();
+        if (turn1){
+            for (int i = 0; i< 7-user1.getRackSize(); i++){
+                user1.addLetter(lettersBag.getRandom());
+            }
+            turn1 = false;
+            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
+            updateRack(user2);
+        }
+        else{
+            for (int i = 0; i< 7-user2.getRackSize(); i++){
+                user2.addLetter(lettersBag.getRandom());
+            }
+            turn1 = true;
+            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            updateRack(user1);
+        }
     }
 
     /**
@@ -556,17 +683,17 @@ public class Board {
 
     public void play(int row, int col){
         if(turn1){
-            /*for (int i = 0; i< 7-user2.getRackSize(); i++){
+            for (int i = 0; i< 7-user2.getRackSize(); i++){
                 user2.addLetter(lettersBag.getRandom());
-            }*/
+            }
             place(row, col, selectedRackLetter, user1);
             updateRack(user1);
             printRack(user1);
         }
         else{
-            /*for (int i = 0; i< 7-user1.getRackSize(); i++){
+            for (int i = 0; i< 7-user1.getRackSize(); i++){
                 user1.addLetter(lettersBag.getRandom());
-            }*/
+            }
             place(row, col, selectedRackLetter, user2);
             updateRack(user2);
             printRack(user2);

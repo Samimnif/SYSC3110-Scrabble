@@ -2,7 +2,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 
 public class ScrabbleFrame extends JFrame implements ScrabbleView{
@@ -51,7 +50,10 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
         submit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                if (board.checkBoard()){
+                    board.switchTurn();
+                    lockSubmission();
+                }
             }
         });
 
@@ -136,11 +138,23 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
         }
     }
 
+    private void lockSubmission(){
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                if (!boardButtons[i][j].getText().equals("")){
+                    boardButtons[i][j].setEnabled(false);
+                    boardButtons[i][j].setBorder(BorderFactory.createLineBorder(Color.cyan));
+                }
+            }
+        }
+
+    }
+
     @Override
     public void update(ScrabbleEvent e) {
         if(e.getCol() < 0){
             if (e.getLetter() == ' '){
-                rackButtons[e.getRow()].setText("");
+                rackButtons[e.getRow()].setText(" ");
                 rackButtons[e.getRow()].setEnabled(false);
                 rackButtons[e.getRow()].setBorder(BorderFactory.createLineBorder(Color.red));
             }
