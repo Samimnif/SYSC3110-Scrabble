@@ -25,7 +25,7 @@ public class Rack {
      * @param letter teh letter to be added to teh list
      */
     public void addLetter(char letter){
-        rack.add(letter);
+        if (rack.size() < 7) rack.add(letter);
     }
 
     /**
@@ -55,6 +55,10 @@ public class Rack {
             System.out.printf(" %c ",letter);
         }
         System.out.println();
+    }
+
+    public ArrayList<Character> getRack(){
+        return rack;
     }
 
     /**

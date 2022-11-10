@@ -10,6 +10,7 @@
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.io.File;
 import java.util.Stack;
@@ -30,6 +31,10 @@ public class Board {
     private int columnSelect, rowSelect;
     private Stack<String> edits;
     private Bag lettersBag;
+    private User user1;
+    private User user2;
+    private String selectedRackLetter;
+    private List<ScrabbleView> views;
 
     /**
      * Constructor of the Board object
@@ -39,7 +44,15 @@ public class Board {
      *
      */
     public Board() {
+        selectedRackLetter = "";
+        user1 = new User();
+        user2 = new User();
         lettersBag = new Bag();
+        for (int i = 0; i<7; i++){
+            user1.addLetter(lettersBag.getRandom());
+            user2.addLetter(lettersBag.getRandom());
+        }
+        views = new ArrayList<>();
         this.edits = new Stack<>();
         this.board = new ArrayList<>(boardSize);
         Box newBox;
@@ -87,6 +100,7 @@ public class Board {
             for (int c = 0; c < boardSize; c++) {
                 if (r == row && c == column){
                     this.board.get(r).get(c).setLetter(letter);
+                    for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, r, c, letter));}
                 }
             }
         }
@@ -285,6 +299,24 @@ public class Board {
         else System.out.println(RED+"You didn't place any letters"+RESET);
     }
 
+    public void charBack(){
+        User user;
+        if (turn1) user = user1;
+        else user = user2;
+        System.out.println("Edits size: "+edits.size());
+
+        if (edits.size() > 0){
+            if(coordinates(edits.pop())){
+                System.out.println(this.board.get(rowSelect).get(columnSelect).getLetter());
+                user.addLetter(this.board.get(rowSelect).get(columnSelect).getLetter());
+                this.board.get(rowSelect).get(columnSelect).setLetter('□');
+                for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, rowSelect, columnSelect, ' '));}
+                updateRack(user);
+            }
+        }
+        else System.out.println(RED+"You didn't place any letters"+RESET);
+    }
+
     /**
      * the switchTurn method switches users turns. It makes sure that the current playing user
      * gets its rack filled before switching to th next user.
@@ -322,6 +354,27 @@ public class Board {
         else turn1 = true;
     }
 
+    public void pass(){
+        int size = edits.size();
+        for (int i = 0; i < size; i++) {
+            charBack();
+        }
+        //System.out.println("Edits size: "+edits.size());
+        if (turn1){
+            turn1 = false;
+            //printRack(user1);
+            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
+            updateRack(user2);
+        }
+        else{
+            turn1 = true;
+            //printRack(user2);
+            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            updateRack(user1);
+        }
+
+    }
+
     /**
      * The printRack method prints the specific user's rack
      *
@@ -329,6 +382,29 @@ public class Board {
      */
     private void printRack(User user){
         user.printRack();
+    }
+
+    public void updateRack(User user){
+        int index = 0;
+        System.out.println("size: "+user.getRack().size());
+        user.printRack();
+        for (Character letter: user.getRack()) {
+            for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, index, -1, letter));}
+            System.out.println(index);
+            index++;
+        }
+        if (index < 7){
+            for (int i = 0; i < 7-index; i++) {
+                for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, index+i, -1, ' '));}
+            }
+        }
+    }
+
+    public ArrayList<Character> getRack(){
+        if (turn1){
+            return user1.getRack();
+        }
+        return user2.getRack();
     }
     private void printHelp(){
         System.out.println();
@@ -373,6 +449,15 @@ public class Board {
         return true;
     }
 
+    private boolean coordinates(int row, int col){
+        if (row<0 || col<0){
+            return false;
+        }
+        columnSelect = col;
+        rowSelect = row;
+        return true;
+    }
+
     /**
      * The place method will place the specific letter into the board at a specific coordinates (index).
      * If it is multiple characters, then it will add it sequentially in the direction teh coordinates intend.
@@ -405,6 +490,28 @@ public class Board {
         }
     }
 
+    private boolean place(int row, int col, String letter, User user){
+        if (!coordinates(row, col)){
+            System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
+        }
+        else{
+            for (int i = 0; i < letter.length(); i++) {
+                if(user.hasLetter(letter.toUpperCase().charAt(i)) && isEmpty(columnSelect, rowSelect)){
+                    editBoard(columnSelect, rowSelect, letter.charAt(i));
+                    edits.push(Integer.toString(rowSelect)+column[columnSelect]);
+                    user.removeLetter(letter.toUpperCase().charAt(i));
+                }
+                else if (!(user.hasLetter(letter.toUpperCase().charAt(i)))){
+                    return false;
+                }
+                else{
+                    break;
+                }
+            }
+        }
+        return true;
+    }
+
     /**
      * The getInput method get Input from the user using the command object which later uses the parse the input.
      *
@@ -422,13 +529,6 @@ public class Board {
      *
      */
     public void play(){
-        User user1 = new User();
-        User user2 = new User();
-
-        for (int i = 0; i<7; i++){
-            user1.addLetter(lettersBag.getRandom());
-            user2.addLetter(lettersBag.getRandom());
-        }
         while(!(exit)) {
             printBoard();
             if (turn1){
@@ -452,6 +552,38 @@ public class Board {
                 exit = processCommand(getInput(user2), user2);
             }
         }
+    }
+
+    public void play(int row, int col){
+        if(turn1){
+            /*for (int i = 0; i< 7-user2.getRackSize(); i++){
+                user2.addLetter(lettersBag.getRandom());
+            }*/
+            place(row, col, selectedRackLetter, user1);
+            updateRack(user1);
+            printRack(user1);
+        }
+        else{
+            /*for (int i = 0; i< 7-user1.getRackSize(); i++){
+                user1.addLetter(lettersBag.getRandom());
+            }*/
+            place(row, col, selectedRackLetter, user2);
+            updateRack(user2);
+            printRack(user2);
+        }
+        printBoard();
+        selectedRackLetter = "";
+    }
+
+    public void selectRackLetter(String letter){
+        //if(selectedRackLetter.equals("")){
+            selectedRackLetter = letter;
+            System.out.println(letter + " is selected!");
+        //}
+    }
+
+    public void addScrabbleView(ScrabbleView v) {
+        views.add(v);
     }
 
     public static void main(String[] args) {

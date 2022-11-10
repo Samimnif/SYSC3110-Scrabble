@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 /**
  * User class
  * The class contains information about the user
@@ -57,6 +59,10 @@ public class User {
      */
     public void printRack() {
         userRack.printRack();
+    }
+
+    public ArrayList<Character> getRack(){
+        return userRack.getRack();
     }
 
     /**
