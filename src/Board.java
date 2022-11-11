@@ -95,7 +95,7 @@ public class Board {
      * @param row takes the specific row index for the edit
      * @param letter the letter to be added in the board
      */
-    private void editBoard(int column, int row, char letter){
+    public void editBoard(int column, int row, char letter){
         for(int r = 0; r < boardSize; r++) {
             for (int c = 0; c < boardSize; c++) {
                 if (r == row && c == column){
@@ -104,6 +104,10 @@ public class Board {
                 }
             }
         }
+    }
+
+    public ArrayList getBoard(){
+        return board;
     }
 
     /**
@@ -213,6 +217,7 @@ public class Board {
                 row = rowSelect;
             }
         }
+
         if (majorityV > majorityH){
             hDirection = false;
         }
@@ -533,6 +538,11 @@ public class Board {
         }
         return user2.getRack();
     }
+
+    public boolean getTurn(){
+        return turn1;
+    }
+
     private void printHelp(){
         System.out.println();
         System.out.print(GREEN+"For this game you have 7 letter rack \nand you have to generate a word using those letters\nCommands: "+BLUE);
@@ -707,6 +717,11 @@ public class Board {
             selectedRackLetter = letter;
             System.out.println(letter + " is selected!");
         //}
+    }
+
+    public String getSelectedRackLetter(){
+
+        return selectedRackLetter;
     }
 
     public void addScrabbleView(ScrabbleView v) {
