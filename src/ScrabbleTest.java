@@ -104,9 +104,9 @@ public class ScrabbleTest {
         user.addLetter('G');
         user.addLetter('I');
 
-        assertEquals(true, ScrabbleGame.place(3,7, "A", user));
-        assertNotEquals(true, ScrabbleGame.place(14,3, "K", user));
-        assertEquals(false, ScrabbleGame.place(14,3, "G", user));
+        assertEquals(true, ScrabbleGame.place(3,7, "A", user));       
+        assertNotEquals(true, ScrabbleGame.place(14,3, "J", user));
+        assertEquals(false, ScrabbleGame.place(14,3, "F", user));
     }
 
     /**
