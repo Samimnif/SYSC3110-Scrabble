@@ -5,323 +5,752 @@
  *
  * @author Sami Mnif
  * @version 2022-10-16
- *
  */
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Scanner;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-public class Board {
-    private ArrayList<ArrayList<Box>> boardList;
-    private final int boardSize = 11;
-    private  static int rowValue;
-    private  static int colValue;
 
-    private static int firstUserScore;
-    private static int secondUserScore;
-    private static final int[] LETTER_VALUES = {
-            1, 3, 3, 2, 1, 4, 2, 4, 1, 8,
-            5, 1, 3, 1, 1, 3, 10, 1, 1, 1,
-            1, 4, 4, 8, 4, 10
-    };
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.io.File;
+import java.util.Stack;
+
+public class Board {
+    public static final String RESET = "\u001B[0m";
+    public static final String RED = "\u001B[31m";
+    public static final String GREEN = "\u001B[32m";
+    public static final String YELLOW = "\u001B[33m";
+    public static final String BLUE = "\u001B[34m";
+    public static final String PURPLE = "\u001B[35m";
+    public static final String CYAN = "\u001B[36m";
+    private ArrayList<ArrayList<Box>> board;
+    private final int boardSize = 10;
+    private final char[] column = {'A','B','C','D','E','F','G','H','I','J'};
+    private boolean turn1 = true, exit = false, horizontal = true;
+
+    private int columnSelect, rowSelect;
+    private Stack<String> edits;
+    private Bag lettersBag;
+    private User user1;
+    private User user2;
+    private String selectedRackLetter;
+    private List<ScrabbleView> views;
+
     /**
      * Constructor of the Board object
      * Creates a 10x10 board
      * fill the board spots with Box objects.
+     * Initializing important attributes
      *
      */
     public Board() {
-        this.boardList = new ArrayList<>(boardSize);
+        selectedRackLetter = "";
+        user1 = new User();
+        user2 = new User();
+        lettersBag = new Bag();
+        for (int i = 0; i<7; i++){
+            user1.addLetter(lettersBag.getRandom());
+            user2.addLetter(lettersBag.getRandom());
+        }
+        views = new ArrayList<>();
+        this.edits = new Stack<>();
+        this.board = new ArrayList<>(boardSize);
         Box newBox;
-        int ascii = 63;
         for(int r = 0; r < boardSize; r++)  {
-            boardList.add(new ArrayList<Box>(boardSize)); //adds an arraylist 0f 11 Box objects to main arraylist - board
-
+            board.add(new ArrayList<Box>(boardSize));
             for(int c = 0; c < boardSize; c++){
-                ascii++;
-                if(r==0 && c >0){
-                    boardList.get(r).add(newBox = new Box((char) ascii));
-                }else if(c==0 && r>0){
-                    boardList.get(r).add(newBox = new Box(Character.forDigit(r-1, 10)));
-                }else {
-                    boardList.get(r).add(newBox = new Box('-'));
-                }
+                board.get(r).add(newBox = new Box('□'));
             }
         }
     }
 
     /**
-     * Adds a new word to the board object.
-     * @author Nikita Sara Vijay
-     */
-    public void updateBoard(String word, int row, int col, int orientation) {
-        ArrayList<Box> boardRowList = new ArrayList<>();
-        boardRowList = boardList.get(row);
-        char [] letters = word.toCharArray();
-        char currentLetter;
-        if (orientation == 1) {
-
-            for (int i = 0; i < letters.length; i++) {
-                //System.out.println(boardRowList.get(col).getLetter());
-                currentLetter = boardRowList.get(col).getLetter();
-                if(currentLetter != '-'){
-                    System.out.println("Sorry, Location selected overlaps with an existing word. Please try again.");
-                    break;
-                }
-                boardRowList.set(col, new Box(letters[i]));
-                col++;
-            }
-            boardList.set(row, boardRowList);
-        }else {
-            Box box;
-            for (int i = 0; i < letters.length; i++) {
-
-                boardRowList = boardList.get(row);
-                box = boardRowList.get(col);
-                currentLetter = boardRowList.get(col).getLetter();
-                if(currentLetter != '-'){
-                    System.out.println("Sorry, Location selected overlaps with an existing word. Please try again.");
-                    break;
-                }
-                boardRowList.set(col, new Box(letters[i]));
-                row++;
-            }
-        }
-    }
-
-    /**
-     * Prints the board contents to the terminal
+     * prints the board contents to the terminal
      *
      */
-    public void printBoard() {
+    private void printBoard() {
+        System.out.print(" "+PURPLE);
+        for(int c = 0; c < boardSize; c++) {
+            System.out.printf(" %c ",column[c]);
+        }
+        System.out.println(RESET);
         for(int r = 0; r < boardSize; r++) {
-            //System.out.println("r:"+r);
+            System.out.print(PURPLE+r+RESET);
             for (int c = 0; c < boardSize; c++) {
-                System.out.printf(" %c ",this.boardList.get(r).get(c).getLetter());
+                if (this.board.get(r).get(c).getLetter() != '□'){
+                    System.out.print(CYAN);
+                }
+                System.out.printf(" %c ",this.board.get(r).get(c).getLetter());
+                System.out.print(RESET);
             }
             System.out.println();
         }
     }
+
     /**
-     * Gets the value of each letter to calculate the score for a word
-     * @author Nikita Sara Vijay
+     * The editBoard is a method that takes a letter and its specific coordinates
+     * on board and then edit the board by adding the letter in teh specific box/
+     *
+     * @param column takes the specific column index for the edit
+     * @param row takes the specific row index for the edit
+     * @param letter the letter to be added in the board
      */
-    private static int getLetterValue(char letter) {
-        char upperCase = Character.toUpperCase(letter);
-        return LETTER_VALUES[upperCase - 'A'];
-    }
-    /**
-     * Calculates the score of each word
-     * @author Nikita Sara Vijay
-     */
-    private static int calculateWordScore(String word) {
-        int score = 0;
-        for (char letter : word.toCharArray()) {
-            score += getLetterValue(letter);
+    public void editBoard(int column, int row, char letter){
+        for(int r = 0; r < boardSize; r++) {
+            for (int c = 0; c < boardSize; c++) {
+                if (r == row && c == column){
+                    this.board.get(r).get(c).setLetter(letter);
+                    for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, r, c, letter));}
+                }
+            }
         }
-        return score;
     }
+
+    public ArrayList getBoard(){
+        return board;
+    }
+
     /**
-     * Converts arraylist to string to compare letters in rack and the word entered by user
-     * @author Nikita Sara Vijay
+     * the isEmpty method takes the coordinates and checks if the box with that specific coordinates in board is empty
+     * or contains a letter. True if the box is empty and contains '□' character, false otherwise.
+     *
+     * @param column the column index on the board
+     * @param row the row index on the board
+     * @return boolean if the specific box is empty in the board
      */
-    private static String convertArrayListToString(ArrayList<Character> rack){
-        StringBuilder rackStr = new StringBuilder(rack.size());
-        for(Character ch: rack)
-        {
-            rackStr.append(ch);
+    public boolean isEmpty(int column, int row){
+        for(int r = 0; r < boardSize; r++) {
+            for (int c = 0; c < boardSize; c++) {
+                if (r == row && c == column){
+                    if (this.board.get(r).get(c).getLetter() == ('□')){
+                        return true;
+                    }
+                }
+            }
         }
-        return rackStr.toString();
+        System.out.println(RED+"You can't place a letter on a occupied tile or outside the board"+RESET);
+        return false;
     }
+
     /**
-     * Compare letters in rack and the word entered by user
-     * @author Nikita Sara Vijay
+     * the processCommand method processes the command submitted by the user and then
+     * direct the game to teh appropriate method for the appropriate command.
+     * The method returns false if the game will continue and returns true if the user
+     * wants to end the game.
+     *
+     * @param command the command object that contains the users command from the terminal
+     * @param user the user object that submitted the command
+     * @return boolean if the user wants to end the game or not
      */
-    private static boolean compareStrings(String firstValue, String secondValue){
-        char[] first = firstValue.toCharArray();
-        char[] second = secondValue.toCharArray();
-        if(second.length > first.length)
+    public boolean processCommand(Command command, User user)
+    {
+        boolean wantToQuit = false;
+
+        if(command.isUnknown()) {
+            System.out.println(YELLOW+"I don't know what you mean..."+RESET);
             return false;
-        else if(second.length == first.length) {
-            Arrays.sort(first);
-            Arrays.sort(second);
-            return Arrays.equals(first, second);
+        }
+
+        String commandWord = command.getCommandWord();
+        if ((commandWord.toLowerCase()).equals("help")) {
+            printHelp();
+        }
+        else if ((commandWord.toLowerCase()).equals("place")) {
+            if (command.hasThirdWord() && command.hasSecondWord()){
+                place(command, user);
+            }
+            else{
+                System.out.println(RED+"Sorry, I don't understand please include the letters and the coordinates."+RESET);
+            }
+        }
+        else if ((commandWord.toLowerCase()).equals("rack")) {
+            printRack(user);
+        }
+        else if ((commandWord.toLowerCase()).equals("submit")) {
+            if (checkBoard(user)){
+                switchTurn(user);
+            }
+        }
+        else if ((commandWord.toLowerCase()).equals("pass")) {
+            pass(user);
+        }
+        else if ((commandWord.toLowerCase()).equals("back")) {
+            charBack(user);
+        }
+        else if ((commandWord.toLowerCase()).equals("exit")) {
+            wantToQuit = true;
+        }
+        // else command not recognised.
+        return wantToQuit;
+    }
+
+    /**
+     * the checkBoard method checks the letters the user placed if it forms a valid word.
+     * If the word is valid then it return true, otherwise it returns false
+     *
+     * @param user the user object that was placing the letters on board
+     * @return boolean if the letters the user places on board is valid or not
+     */
+    public boolean checkBoard(User user){
+        Stack<String> temp = new Stack<>();
+        coordinates(edits.get(0));
+        int column = columnSelect;
+        int row = rowSelect;
+        boolean hDirection = false;
+        String word = "";
+        int majorityV = 0;
+        int majorityH = 0;
+
+        for (int i = 1; i < edits.size(); i++) {
+            if (coordinates(edits.get(i))){
+                if (column == columnSelect){
+                    //System.out.println("Same column"+Integer.toString(column));
+                    //hDirection = false;
+                    majorityV++;
+                }
+                else if (row == rowSelect){
+                    //System.out.println("Same row"+Integer.toString(row));
+                    //hDirection = true;
+                    majorityH++;
+                }
+                column = columnSelect;
+                row = rowSelect;
+            }
+        }
+
+        if (majorityV > majorityH){
+            hDirection = false;
+        }
+        else hDirection = true;
+        for(int r = 0; r < boardSize; r++) {
+            for (int c = 0; c < boardSize; c++) {
+                if (hDirection && r == row) {
+                    if (this.board.get(r).get(c).getLetter() != '□'){
+                        word += this.board.get(r).get(c).getLetter();
+                        for (int i = 1; i < edits.size(); i++) {
+                            if (coordinates(edits.get(i))){
+                                if (columnSelect == c && rowSelect == r){
+                                    temp.push(edits.remove(i));
+                                }
+                            }
+                        }
+                    }
+                    else if (this.board.get(r).get(c).getLetter() == '□' && c < column){
+                        //System.out.println("Word so far: "+word);
+                        if (!(word.equals(""))){
+                            word = "";
+                        }
+                    }
+                }
+                else if (!hDirection && c == column){
+                    if (this.board.get(r).get(c).getLetter() != '□'){
+                        word += this.board.get(r).get(c).getLetter();
+                        for (int i = 1; i < edits.size(); i++) {
+                            if (coordinates(edits.get(i))){
+                                if (columnSelect == c && rowSelect == r){
+                                    temp.push(edits.remove(i));
+                                }
+                            }
+                        }
+                    }
+                    else if (this.board.get(r).get(c).getLetter() == '□' && r < row){
+                        //System.out.println("Word so far: "+word);
+                        if (!(word.equals(""))){
+                            word = "";
+                        }
+                    }
+                }
+            }
+        }
+        WordList checker = new WordList();
+        //System.out.println(word +" "+hDirection+temp);
+        if (word.length()<2){
+            System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+        }
+        else if (checker.isWord(word.toLowerCase())){
+            System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+            for (int i = 0; i < word.length(); i++) {
+                user.addScore(word.charAt(i));
+            }
+            System.out.print(PURPLE);
+            user.showScore();
+            System.out.print(RESET);
+            return true;
+        }
+        else{
+            System.out.println(RED+"Sorry the word doesn't exist in out dictionary"+RESET);
+        }
+        if (edits.size() > 0){
+            System.out.println(RED+"Your characters are not forming a word"+RESET);
+        }
+        for (int i = 0; i < temp.size(); i++) {
+            edits.push(temp.pop());
+        }
+        return false;
+    }
+
+    public boolean checkBoard(){
+        User user;
+        if (turn1) user = user1;
+        else user = user2;
+        Stack<String> temp = new Stack<>();
+        coordinates(edits.get(0));
+        int column = columnSelect;
+        int row = rowSelect;
+        boolean hDirection = false;
+        String word = "";
+        int majorityV = 0;
+        int majorityH = 0;
+
+        for (int i = 1; i < edits.size(); i++) {
+            if (coordinates(edits.get(i))){
+                if (column == columnSelect){
+                    //System.out.println("Same column"+Integer.toString(column));
+                    //hDirection = false;
+                    majorityV++;
+                }
+                else if (row == rowSelect){
+                    //System.out.println("Same row"+Integer.toString(row));
+                    //hDirection = true;
+                    majorityH++;
+                }
+                column = columnSelect;
+                row = rowSelect;
+            }
+        }
+        if (majorityV > majorityH){
+            hDirection = false;
+        }
+        else hDirection = true;
+        for(int r = 0; r < boardSize; r++) {
+            for (int c = 0; c < boardSize; c++) {
+                if (hDirection && r == row) {
+                    if (this.board.get(r).get(c).getLetter() != '□'){
+                        word += this.board.get(r).get(c).getLetter();
+                        for (int i = 1; i < edits.size(); i++) {
+                            if (coordinates(edits.get(i))){
+                                if (columnSelect == c && rowSelect == r){
+                                    temp.push(edits.remove(i));
+                                }
+                            }
+                        }
+                    }
+                    else if (this.board.get(r).get(c).getLetter() == '□' && c < column){
+                        //System.out.println("Word so far: "+word);
+                        if (!(word.equals(""))){
+                            word = "";
+                        }
+                    }
+                }
+                else if (!hDirection && c == column){
+                    if (this.board.get(r).get(c).getLetter() != '□'){
+                        word += this.board.get(r).get(c).getLetter();
+                        for (int i = 1; i < edits.size(); i++) {
+                            if (coordinates(edits.get(i))){
+                                if (columnSelect == c && rowSelect == r){
+                                    temp.push(edits.remove(i));
+                                }
+                            }
+                        }
+                    }
+                    else if (this.board.get(r).get(c).getLetter() == '□' && r < row){
+                        //System.out.println("Word so far: "+word);
+                        if (!(word.equals(""))){
+                            word = "";
+                        }
+                    }
+                }
+            }
+        }
+        WordList checker = new WordList();
+        //System.out.println(word +" "+hDirection+temp);
+        if (word.length()<2){
+            System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+        }
+        else if (checker.isWord(word.toLowerCase())){
+            System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+            for (int i = 0; i < word.length(); i++) {
+                user.addScore(word.charAt(i));
+            }
+            System.out.print(PURPLE);
+            user.showScore();
+            System.out.print(RESET);
+
+            return true;
+        }
+        else{
+            System.out.println(RED+"Sorry the word doesn't exist in out dictionary"+RESET);
+        }
+        if (edits.size() > 0){
+            System.out.println(RED+"Your characters are not forming a word"+RESET);
+        }
+        for (int i = 0; i < temp.size(); i++) {
+            edits.push(temp.pop());
+        }
+        return false;
+    }
+
+    /**
+     * the charBack method takes the letters that the user placed on board back to their rack.
+     *
+     * @param user the user object that placed the letters on board
+     */
+    private void charBack(User user){
+        if (edits.size() > 0){
+            if(coordinates(edits.pop())){
+                user.addLetter(this.board.get(rowSelect).get(columnSelect).getLetter());
+                this.board.get(rowSelect).get(columnSelect).setLetter('□');
+            }
+        }
+        else System.out.println(RED+"You didn't place any letters"+RESET);
+    }
+
+    public void charBack(){
+        User user;
+        if (turn1) user = user1;
+        else user = user2;
+        System.out.println("Edits size: "+edits.size());
+
+        if (edits.size() > 0){
+            if(coordinates(edits.pop())){
+                System.out.println(this.board.get(rowSelect).get(columnSelect).getLetter());
+                user.addLetter(this.board.get(rowSelect).get(columnSelect).getLetter());
+                this.board.get(rowSelect).get(columnSelect).setLetter('□');
+                for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, rowSelect, columnSelect, ' '));}
+                updateRack(user);
+            }
+        }
+        else System.out.println(RED+"You didn't place any letters"+RESET);
+    }
+
+    /**
+     * the switchTurn method switches users turns. It makes sure that the current playing user
+     * gets its rack filled before switching to th next user.
+     *
+     * @param user the user object that was currently playing
+     */
+    private void switchTurn(User user){
+        if (user.getRackSize() < 7){
+            for (int i = 0; i < 7-user.getRackSize(); i++) {
+                user.addLetter(lettersBag.getRandom());
+            }
+        }
+        edits.clear();
+        if (turn1) turn1 = false;
+        else turn1 = true;
+    }
+
+    public void switchTurn(){
+        User user;
+        if (turn1) user = user1;
+        else user = user2;
+        if (user.getRackSize() < 7){
+            for (int i = 0; i < 7-user.getRackSize(); i++) {
+                user.addLetter(lettersBag.getRandom());
+            }
+        }
+        edits.clear();
+        if (turn1){
+            for (int i = 0; i< 7-user1.getRackSize(); i++){
+                user1.addLetter(lettersBag.getRandom());
+            }
+            turn1 = false;
+            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
+            updateRack(user2);
+        }
+        else{
+            for (int i = 0; i< 7-user2.getRackSize(); i++){
+                user2.addLetter(lettersBag.getRandom());
+            }
+            turn1 = true;
+            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            updateRack(user1);
+        }
+    }
+
+    /**
+     * the pass method passes the user turn to the next one if the user doesn't want to play his turn.
+     * The method makes sure that all characters placed by the user gets retrieved and put back to the rack.
+     * Then switches turns to next player.
+     *
+     * @param user the user object that was currently playing
+     */
+    private void pass(User user){
+        int size = edits.size();
+        for (int i = 0; i < size; i++) {
+            charBack(user);
+        }
+        if (turn1){
+            turn1 = false;
+        }
+        else turn1 = true;
+    }
+
+    public void pass(){
+        int size = edits.size();
+        for (int i = 0; i < size; i++) {
+            charBack();
+        }
+        //System.out.println("Edits size: "+edits.size());
+        if (turn1){
+            turn1 = false;
+            //printRack(user1);
+            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
+            updateRack(user2);
+        }
+        else{
+            turn1 = true;
+            //printRack(user2);
+            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            updateRack(user1);
+        }
+
+    }
+
+    /**
+     * The printRack method prints the specific user's rack
+     *
+     * @param user the user object that holds the rack
+     */
+    private void printRack(User user){
+        user.printRack();
+    }
+
+    public void updateRack(User user){
+        int index = 0;
+        System.out.println("size: "+user.getRack().size());
+        user.printRack();
+        for (Character letter: user.getRack()) {
+            for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, index, -1, letter));}
+            System.out.println(index);
+            index++;
+        }
+        if (index < 7){
+            for (int i = 0; i < 7-index; i++) {
+                for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, index+i, -1, ' '));}
+            }
+        }
+    }
+
+    public ArrayList<Character> getRack(){
+        if (turn1){
+            return user1.getRack();
+        }
+        return user2.getRack();
+    }
+
+    public boolean getTurn(){
+        return turn1;
+    }
+
+    private void printHelp(){
+        System.out.println();
+        System.out.print(GREEN+"For this game you have 7 letter rack \nand you have to generate a word using those letters\nCommands: "+BLUE);
+        CommandWords commandWords = new CommandWords();
+        commandWords.showAll();
+        System.out.println(RESET);
+    }
+
+    /**
+     * The coordinates method takes a string of coordinates and then converts it into two int.
+     * One is the column index and the other is row index.
+     * The method also detects if the coordinates is meant to be horizontal vertical direction.
+     * Note: the column string is in characters.
+     * Example: A0
+     *
+     * @param coordinates a string that has the coordinates in row and column
+     * @return boolean, true if the coordinates are valid, false otherwise.
+     */
+    public boolean coordinates(String coordinates){
+        int c = -1;
+        int r = -1;
+        for (int i = 0; i < coordinates.length(); i++) {
+            for (int j = 0; j < column.length; j++) {
+                if(column[j] == coordinates.toUpperCase().charAt(i)){
+                    c = j;
+                    if (i==0){
+                        horizontal = false;
+                    }
+                    else horizontal = true;
+                }
+                else if((coordinates.substring(i, i+1).toUpperCase()).equals(Integer.toString(j))){
+                    r = j;
+                }
+            }
+        }
+        if (c<0 || r<0){
+            return false;
+        }
+        columnSelect = c;
+        rowSelect = r;
+        return true;
+    }
+
+    public boolean coordinates(int row, int col){
+        if (row<0 || col<0){
+            return false;
+        }
+        columnSelect = col;
+        rowSelect = row;
+        return true;
+    }
+
+    /**
+     * The place method will place the specific letter into the board at a specific coordinates (index).
+     * If it is multiple characters, then it will add it sequentially in the direction teh coordinates intend.
+     *
+     * @param command command submitted by the user
+     * @param user the user who submitted the command
+     */
+    public void place(Command command, User user){
+        if (!coordinates(command.getThirdWord())){
+            System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
+        }
+        else{
+            for (int i = 0; i < command.getSecondWord().length(); i++) {
+                if(user.hasLetter(command.getSecondWord().toUpperCase().charAt(i)) && isEmpty(columnSelect, rowSelect)){
+                    editBoard(columnSelect, rowSelect, command.getSecondWord().toUpperCase().charAt(i));
+                    edits.push(Integer.toString(rowSelect)+column[columnSelect]);
+                    if (horizontal){
+                        columnSelect++;
+                    }
+                    else rowSelect++;
+                    user.removeLetter(command.getSecondWord().toUpperCase().charAt(i));
+                }
+                else if (!(user.hasLetter(command.getSecondWord().toUpperCase().charAt(i)))){
+                    System.out.println(YELLOW+"You don't have letter "+ RED+command.getSecondWord().toUpperCase().charAt(i)+RESET);
+                }
+                else{
+                    break;
+                }
+            }
+        }
+    }
+
+    public boolean place(int row, int col, String letter, User user){
+        if (!coordinates(row, col)){
+            System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
+        }
+        else{
+            for (int i = 0; i < letter.length(); i++) {
+                if(user.hasLetter(letter.toUpperCase().charAt(i)) && isEmpty(columnSelect, rowSelect)){
+                    editBoard(columnSelect, rowSelect, letter.charAt(i));
+                    edits.push(Integer.toString(rowSelect)+column[columnSelect]);
+                    user.removeLetter(letter.toUpperCase().charAt(i));
+                }
+                else if (!(user.hasLetter(letter.toUpperCase().charAt(i)))){
+                    return false;
+                }
+                else{
+                    break;
+                }
+            }
         }
         return true;
     }
+
     /**
-     * Validates if the word entered is valid
-     * May not be needed as only values in dictionary are allowed.
-     * @author Nikita Sara Vijay
+     * The getInput method get Input from the user using the command object which later uses the parse the input.
+     *
+     * @param user the user who we will get the input from
+     * @return the Command we received from the user (to parse later)
      */
-    private static String validateWord(Scanner input , String word, ArrayList<Character> rackValues){
-
-        //Compares if the word consists of letters in the rack
-        String rackStr =  convertArrayListToString(rackValues);
-        while(!compareStrings(rackStr, word)) {
-            System.out.println("Invalid word, Word entered contains letters that are not in your rack. Please try again.");
-
-            System.out.println("Enter word: " );
-            word = input.nextLine();
-            //Compares if the word consists of letters in the rack
-            rackStr =  convertArrayListToString(rackValues);
-        }
-
-        return word;
+    private Command getInput(User user){
+        Command command = user.getInput();
+        return command;
     }
-    /**
-     * Validates if the row value entered by user is greater than 10
-     * If it's greater, a message will be displayed and gets a new input.
-     * @author Nikita Sara Vijay
-     */
-    private static int validateRow(Scanner input , int rValue){
-        String rowStr = "";
-        while(rValue >10) {
-            System.out.println("Invalid row location. Please enter values below 10 and try again.");
 
-            System.out.println("Enter row to place word: ");
-            rowStr = input.nextLine();
-            if((rowStr != null) && !(rowStr.equals(""))){
-                rValue = Integer.parseInt(rowStr);
-            }
-        }
-        return rValue;
-    }
     /**
-     * Validates if the column value entered by user is greater than 10
-     * If it's greater, a message will be displayed and gets a new input.
-     * @author Nikita Sara Vijay
+     * The play method is the main method that initializes the users, adds their racks and fill them.
+     * and then start playing., Swicthing turns and printing important information about their score and printing board.
+     *
      */
-    private static int validateCol(Scanner input , int cValue){
-        String colStr = "";
-        while(cValue >10) {
-            System.out.println("Invalid column location. Please enter values below 10 and try again.");
-
-            System.out.println("Enter column to place word: ");
-            colStr = input.nextLine();
-            if((colStr != null) && !(colStr.equals(""))){
-                cValue = Integer.parseInt(colStr);
-            }
-        }
-        return cValue;
-    }
-    /**
-     * Validates if the user entered word is valid/exists in file.
-     * Returns a message to the user if the word is invalid and allows the user to enter a new word
-     * @author Nikita Sara Vijay
-     */
-    private static String checkWordInFile(Scanner input ,String word){
-        while(!validateWordInFile(word)) {
-            System.out.println("Invalid word, Word entered is not present in dictionary. Please try again.");
-            System.out.println("Enter word: " );
-            word = input.nextLine();
-        }
-        return word.toUpperCase();
-    }
-    /**
-     * Checks if the word entered by the user exists in the dictionary/file
-     * @author Nikita Sara Vijay
-     */
-    private static boolean validateWordInFile(String word){
-        File f1=new File("./src/dictionary.txt");
-        try{
-            BufferedReader buff=new BufferedReader(new FileReader(f1));
-            String s=null;
-            while((s=buff.readLine())!=null){
-                if(s.trim().contains(word)){
-                    return true;
+    public void play(){
+        while(!(exit)) {
+            printBoard();
+            if (turn1){
+                for (int i = 0; i< 7-user2.getRackSize(); i++){
+                    user2.addLetter(lettersBag.getRandom());
                 }
+                System.out.println(BLUE+"User1 turn:");
+                user1.showScore();
+                user1.printRack();
+                System.out.print(RESET);
+                exit = processCommand(getInput(user1), user1);
             }
-            buff.close();
-        }catch(Exception e){e.printStackTrace();}
-        return false;
-
+            else {
+                for (int i = 0; i< 7-user1.getRackSize(); i++){
+                    user1.addLetter(lettersBag.getRandom());
+                }
+                System.out.println(RED+"User2 turn:");
+                user2.showScore();
+                user2.printRack();
+                System.out.print(RESET);
+                exit = processCommand(getInput(user2), user2);
+            }
+        }
     }
 
-    /**
-     * Gets User Input - word, row, column and orientation
-     * @author Nikita Sara Vijay
-     */
-    private static String getUserInput(Scanner input, Board table, ArrayList<Character> rackValues){
-        int orientValue = 1;
-        String rowStr = "";
-        String colStr = "";
-        System.out.println("Enter word: " );
-        String word = input.nextLine();
-        word = checkWordInFile(input,word);
-        //word = validateWord(input, word, rackValues);
-        System.out.println("Enter row to place word: ");
-        rowStr = input.nextLine();
-        if((rowStr != null) && !(rowStr.equals(""))){
-            rowValue = Integer.parseInt(rowStr);
+    public void play(int row, int col){
+        if(turn1){
+            for (int i = 0; i< 7-user2.getRackSize(); i++){
+                user2.addLetter(lettersBag.getRandom());
+            }
+            place(row, col, selectedRackLetter, user1);
+            updateRack(user1);
+            printRack(user1);
         }
-        rowValue = validateRow( input ,  rowValue);
-
-        System.out.println("Enter column to place word: ");
-        colStr = input.nextLine();
-        if((colStr != null) && !(colStr.equals(""))){
-            colValue = Integer.parseInt(colStr);
+        else{
+            for (int i = 0; i< 7-user1.getRackSize(); i++){
+                user1.addLetter(lettersBag.getRandom());
+            }
+            place(row, col, selectedRackLetter, user2);
+            updateRack(user2);
+            printRack(user2);
         }
-
-        colValue = validateCol(input ,  colValue);
-
-        System.out.println("Enter the placement orientation (1 for horizontal & 2 for vertical): " );
-        String orientation = input.nextLine();
-        if((orientation != null) && !(orientation.equals(""))){
-            orientValue = Integer.parseInt(orientation);
-        }
-
-        table.updateBoard(word, rowValue,colValue, orientValue);
-        table.printBoard();
-        return word;
+        printBoard();
+        selectedRackLetter = "";
     }
 
-    /**
-     * @author Nikita Sara Vijay
-     */
+    public void selectRackLetter(String letter){
+        //if(selectedRackLetter.equals("")){
+        selectedRackLetter = letter;
+        System.out.println(letter + " is selected!");
+        //}
+    }
+
+    public String getSelectedRackLetter(){
+
+        return selectedRackLetter;
+    }
+
+    public void addScrabbleView(ScrabbleView v) {
+        views.add(v);
+    }
 
     public static void main(String[] args) {
+        System.out.print(GREEN);
+        try {
+            File myObj = new File("src/scrabble.txt");
+            Scanner myReader = new Scanner(myObj);
+            while (myReader.hasNextLine()) {
+                String data = myReader.nextLine();
+                System.out.println(data);
+            }
+            myReader.close();
+        }
+        catch (FileNotFoundException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+        System.out.print(RESET);
 
         Board table = new Board();
-        Scanner input = new Scanner(System.in);
-        String userInput = "";
-        System.out.println("Welcome to Scrabble");
-        String word = "";
-        Rack firstRack = new Rack();
-        User firstUser = new User(firstRack);
 
-        Rack secondRack = new Rack();
-        User secondUser = new User(secondRack);
-        ArrayList<Character> firstRackValues  = new ArrayList<Character>(7);
-        ArrayList<Character> secondRackValues  = new ArrayList<Character>(7);
-        table.printBoard();
-        while(!(userInput.equals("exit"))) {
 
-            //Gets input from First User
+        System.out.println(YELLOW+"Welcome to Scrabble ...\n"+RESET);
 
-            firstRackValues = firstRack.getRack();
-            System.out.println("\n\nPlayer 1 rack: "+firstRackValues);
-            word = getUserInput(input, table, firstRackValues);
-            firstUserScore = firstUserScore + calculateWordScore(word);
-            firstUser.setScore(firstUserScore);
-            System.out.println("*********************************");
-            System.out.println("Player 1 Score is: " + firstUser.getScore());
-            System.out.println("*********************************");
+        table.play();
 
-            //Gets input from Second User
-
-            secondRackValues = secondRack.getRack();
-            System.out.println("\n\nPlayer 2 rack: "+secondRackValues);
-            word = getUserInput(input, table, secondRackValues);
-            secondUserScore = secondUserScore + calculateWordScore(word);
-            firstUser.setScore(secondUserScore);
-            secondUser.setScore(calculateWordScore(word));
-            System.out.println("*********************************");
-            System.out.println("Player 2 Score is: " + secondUser.getScore());
-            System.out.println("*********************************");
-        }
     }
 }
