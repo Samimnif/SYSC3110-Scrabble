@@ -95,7 +95,7 @@ public class Board {
      * @param row takes the specific row index for the edit
      * @param letter the letter to be added in the board
      */
-    private void editBoard(int column, int row, char letter){
+    public void editBoard(int column, int row, char letter){
         for(int r = 0; r < boardSize; r++) {
             for (int c = 0; c < boardSize; c++) {
                 if (r == row && c == column){
@@ -106,6 +106,10 @@ public class Board {
         }
     }
 
+    public ArrayList getBoard(){
+        return board;
+    }
+
     /**
      * the isEmpty method takes the coordinates and checks if the box with that specific coordinates in board is empty
      * or contains a letter. True if the box is empty and contains '□' character, false otherwise.
@@ -114,7 +118,7 @@ public class Board {
      * @param row the row index on the board
      * @return boolean if the specific box is empty in the board
      */
-    private boolean isEmpty(int column, int row){
+    public boolean isEmpty(int column, int row){
         for(int r = 0; r < boardSize; r++) {
             for (int c = 0; c < boardSize; c++) {
                 if (r == row && c == column){
@@ -138,7 +142,7 @@ public class Board {
      * @param user the user object that submitted the command
      * @return boolean if the user wants to end the game or not
      */
-    private boolean processCommand(Command command, User user)
+    public boolean processCommand(Command command, User user)
     {
         boolean wantToQuit = false;
 
@@ -533,6 +537,11 @@ public class Board {
         }
         return user2.getRack();
     }
+
+    public boolean getTurn(){
+        return turn1;
+    }
+
     private void printHelp(){
         System.out.println();
         System.out.print(GREEN+"For this game you have 7 letter rack \nand you have to generate a word using those letters\nCommands: "+BLUE);
@@ -576,7 +585,7 @@ public class Board {
         return true;
     }
 
-    private boolean coordinates(int row, int col){
+    public boolean coordinates(int row, int col){
         if (row<0 || col<0){
             return false;
         }
@@ -592,7 +601,7 @@ public class Board {
      * @param command command submitted by the user
      * @param user the user who submitted the command
      */
-    private void place(Command command, User user){
+    public void place(Command command, User user){
         if (!coordinates(command.getThirdWord())){
             System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
         }
@@ -617,7 +626,7 @@ public class Board {
         }
     }
 
-    private boolean place(int row, int col, String letter, User user){
+    public boolean place(int row, int col, String letter, User user){
         if (!coordinates(row, col)){
             System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
         }
@@ -707,6 +716,11 @@ public class Board {
             selectedRackLetter = letter;
             System.out.println(letter + " is selected!");
         //}
+    }
+
+    public String getSelectedRackLetter(){
+
+        return selectedRackLetter;
     }
 
     public void addScrabbleView(ScrabbleView v) {
