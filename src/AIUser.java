@@ -1,38 +1,17 @@
 import java.util.ArrayList;
 
-/**
- * User class
- * The class contains information about the user
- *
- * @author Sami Mnif
- * @version 2022-10-16
- */
-public class User {
+public class AIUser {
     private Rack userRack;
-    private Parser parser;
-    private CommandWords commands;
     private int score;
     private Points pointSystem;
 
     /**
      * The constructor will set important attributes.
      */
-    public User() {
+    public AIUser() {
         pointSystem = new Points();
         score = 0;
         this.userRack = new Rack();
-        commands = new CommandWords();
-    }
-
-    /**
-     * The getInput will get the input from user and then parse it.
-     *
-     * @return the command we received from the user.
-     */
-    public Command getInput(){
-        parser = new Parser();
-        Command command = parser.getCommand();
-        return command;
     }
 
     /**
@@ -104,4 +83,9 @@ public class User {
     public int getScore() {
         return score;
     }
+
+    public void play(Board gameBoard) {
+
+    }
 }
+

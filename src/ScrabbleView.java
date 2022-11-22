@@ -1,4 +1,4 @@
 public interface ScrabbleView {
     void update(ScrabbleEvent e);
-    void updateTurn(String turn);
+    void updateTurn(String turn, String score);
 }

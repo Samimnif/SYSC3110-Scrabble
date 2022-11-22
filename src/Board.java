@@ -590,7 +590,7 @@ public class Board {
                 user1.addLetter(lettersBag.getRandom());
             }
             turn1 = false;
-            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
+            for(ScrabbleView v : views) {v.updateTurn("Player 2", String.valueOf(user2.getScore()));}
             updateRack(user2);
         }
         else{
@@ -598,7 +598,7 @@ public class Board {
                 user2.addLetter(lettersBag.getRandom());
             }
             turn1 = true;
-            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            for(ScrabbleView v : views) {v.updateTurn("Player 1", String.valueOf(user1.getScore()));}
             updateRack(user1);
         }
     }
@@ -630,13 +630,13 @@ public class Board {
         if (turn1){
             turn1 = false;
             //printRack(user1);
-            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
+            for(ScrabbleView v : views) {v.updateTurn("Player 2", String.valueOf(user2.getScore()));}
             updateRack(user2);
         }
         else{
             turn1 = true;
             //printRack(user2);
-            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            for(ScrabbleView v : views) {v.updateTurn("Player 1",String.valueOf(user1.getScore()));}
             updateRack(user1);
         }
 

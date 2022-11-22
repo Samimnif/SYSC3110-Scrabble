@@ -9,6 +9,7 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
     private JButton[] rackButtons;
     private JButton[][] boardButtons;
     private JLabel rackLabel;
+    JLabel scoreLabel;
     private ArrayList<JButton> selectedRackButtons;
     Board board;
 
@@ -20,7 +21,7 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
         board.addScrabbleView(this);
         JPanel mainPanel = new JPanel();
         JPanel rackPanel = new JPanel();
-        JLabel title = new JLabel("Welcome to Scrabble");
+        scoreLabel = new JLabel("Score: 0");
 
         mainPanel.setLayout(new GridLayout(10,10));
 
@@ -28,6 +29,7 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
         this.add(rackPanel,BorderLayout.PAGE_END);
 
         rackLabel = new JLabel("Player 1 rack: ");
+        rackPanel.add(scoreLabel, BorderLayout.WEST);
         rackPanel.add(rackLabel);
         rackPanel.setSize(400,400);
 
@@ -174,7 +176,8 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
     }
 
     @Override
-    public void updateTurn(String turn) {
+    public void updateTurn(String turn, String score) {
+        scoreLabel.setText("Score: "+score);
         rackLabel.setText(turn+" rack: ");
     }
 
