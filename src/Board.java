@@ -8,6 +8,8 @@
  */
 
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,7 @@ public class Board {
     private User user2;
     private String selectedRackLetter;
     private List<ScrabbleView> views;
+    private Boolean firstPlay;
 
     /**
      * Constructor of the Board object
@@ -44,6 +47,7 @@ public class Board {
      *
      */
     public Board() {
+        firstPlay = true;
         selectedRackLetter = "";
         user1 = new User();
         user2 = new User();
@@ -300,6 +304,10 @@ public class Board {
         String word = "";
         int majorityV = 0;
         int majorityH = 0;
+        WordList checker = new WordList();
+        Boolean wordFound =false;
+        int totalEdits = edits.size();
+        int wordSize = 0;
 
         for (int i = 1; i < edits.size(); i++) {
             if (coordinates(edits.get(i))){
@@ -321,6 +329,125 @@ public class Board {
             hDirection = false;
         }
         else hDirection = true;
+
+        int count = 0;
+        while(true){
+            word = "";
+            for(int r = 0; r < boardSize; r++) {
+                for (int c = 0; c < boardSize; c++) {
+                    System.out.println("WORD: "+word);
+                    System.out.println("EDITS: "+edits);
+                    if (edits.size() == 0) break;
+                    else if (coordinates(edits.get(count))){
+                        if (columnSelect == c && rowSelect == r){
+                            temp.push(edits.remove(count));
+                            for(int i = 0; i < boardSize; i++) {
+                                if (!(word.equals("")) && this.board.get(i).get(columnSelect).getLetter() == '□'){
+                                    break;
+                                }
+                                else if (this.board.get(i).get(columnSelect).getLetter() != '□') {
+                                    word += this.board.get(i).get(columnSelect).getLetter();
+                                    int tempCol =  columnSelect;
+                                    for (int j = 0; j < edits.size(); j++) {
+                                        if(coordinates(edits.get(j))){
+                                            if (rowSelect == i && columnSelect == tempCol){
+                                                temp.push(edits.remove(j));
+                                            }
+                                        }
+                                    }
+                                    columnSelect = tempCol;
+                                }
+                                System.out.println("WORD HERE: "+word);
+                            }
+                            if(edits.size() == 0) break;
+                            if (word.length()<2){
+                                System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+                                //for (String letterCoor : temp) {
+                                //    edits.push(temp.pop());
+                                //}
+                                //break;
+                            }
+                            else if (checker.isWord(word.toLowerCase())){
+                                System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+                                for (int i = 0; i < word.length(); i++) {
+                                    user.addScore(word.charAt(i));
+                                }
+                                System.out.print(PURPLE);
+                                user.showScore();
+                                System.out.print(RESET);
+                                wordFound = true;
+                                wordSize = word.length();
+                            }
+                            word = "";
+                            for (int n = 0; n < boardSize; n++) {
+                                if (!(word.equals("")) && this.board.get(rowSelect).get(n).getLetter() == '□'){
+                                    break;
+                                }
+                                else if (this.board.get(rowSelect).get(n).getLetter() != '□') {
+                                    word += this.board.get(rowSelect).get(n).getLetter();
+                                    int tempRo =  rowSelect;
+                                    for (int i = 0; i < edits.size(); i++) {
+                                        if(coordinates(edits.get(i))){
+                                            if (rowSelect == tempRo && columnSelect == n){
+                                                temp.push(edits.remove(i));
+                                            }
+                                        }
+                                    }
+                                    rowSelect = tempRo;
+                                }
+                                System.out.println("WORD HERE: "+word);
+                            }
+                            if(edits.size() == 0) break;
+                            if (word.length()<2){
+                                System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+                                //for (String letterCoor : temp) {
+                                //    edits.push(temp.pop());
+                                //}
+                                //break;
+                            }
+                            else if (checker.isWord(word.toLowerCase())){
+                                System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+                                for (int i = 0; i < word.length(); i++) {
+                                    user.addScore(word.charAt(i));
+                                }
+                                System.out.print(PURPLE);
+                                user.showScore();
+                                System.out.print(RESET);
+                                wordFound = true;
+                                wordSize = word.length();
+                            }
+                        }
+                    }
+
+                }
+            }
+            if (word.length()<2){
+                System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+                //for (String letterCoor : temp) {
+                //    edits.push(temp.pop());
+                //}
+                break;
+            }
+            else if (checker.isWord(word.toLowerCase())){
+                System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+                for (int i = 0; i < word.length(); i++) {
+                    user.addScore(word.charAt(i));
+                }
+                System.out.print(PURPLE);
+                user.showScore();
+                System.out.print(RESET);
+                wordFound = true;
+                wordSize = word.length();
+            }
+            else if(edits.size() == 0) break;
+            else{
+                System.out.println(RED+"Sorry the word doesn't exist in out dictionary"+RESET);
+                break;
+            }
+            count++;
+        }
+
+        /*
         for(int r = 0; r < boardSize; r++) {
             for (int c = 0; c < boardSize; c++) {
                 if (hDirection && r == row) {
@@ -361,7 +488,7 @@ public class Board {
                 }
             }
         }
-        WordList checker = new WordList();
+
         //System.out.println(word +" "+hDirection+temp);
         if (word.length()<2){
             System.out.println(RED+"Sorry you have one lonely letter"+RESET);
@@ -380,11 +507,20 @@ public class Board {
         else{
             System.out.println(RED+"Sorry the word doesn't exist in out dictionary"+RESET);
         }
+        */
         if (edits.size() > 0){
             System.out.println(RED+"Your characters are not forming a word"+RESET);
         }
         for (int i = 0; i < temp.size(); i++) {
             edits.push(temp.pop());
+        }
+        System.out.println("Word length: "+wordSize+" totaledits: "+totalEdits);
+        if (firstPlay && wordFound){
+            firstPlay = false;
+            return true;
+        }
+        else if (wordSize > totalEdits & wordFound){
+            return true;
         }
         return false;
     }

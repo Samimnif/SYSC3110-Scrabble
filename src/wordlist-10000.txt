@@ -2244,6 +2244,7 @@ currently
 curriculum
 cursor
 curtis
+curt
 curve
 curves
 custody
@@ -2800,6 +2801,7 @@ dsl
 dt
 dts
 du
+duh
 dual
 dubai
 dublin

@@ -165,8 +165,11 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
             }
         }
         else{
-            boardButtons[e.getRow()][e.getCol()].setText(String.valueOf(e.getLetter()));
-            System.out.println("Updated: "+e.getRow()+" "+e.getCol()+" to "+ e.getLetter());
+            if (e.getLetter() == ' '){
+                boardButtons[e.getRow()][e.getCol()].setText("");
+            }
+            else boardButtons[e.getRow()][e.getCol()].setText(String.valueOf(e.getLetter()));
+            System.out.println("Updated: "+e.getRow()+" "+e.getCol()+" to '"+ e.getLetter()+"'");
         }
     }
 
