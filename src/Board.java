@@ -11,11 +11,8 @@
 import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.io.File;
-import java.util.Stack;
 
 public class Board {
     public static final String RESET = "\u001B[0m";
@@ -35,9 +32,11 @@ public class Board {
     private Bag lettersBag;
     private User user1;
     private User user2;
+    private AIUser aiUser;
     private String selectedRackLetter;
     private List<ScrabbleView> views;
     private Boolean firstPlay;
+    private Boolean aiMode;
 
     /**
      * Constructor of the Board object
@@ -47,14 +46,19 @@ public class Board {
      *
      */
     public Board() {
+        aiMode = false;
         firstPlay = true;
         selectedRackLetter = "";
         user1 = new User();
         user2 = new User();
+        aiUser = new AIUser();
         lettersBag = new Bag();
         for (int i = 0; i<7; i++){
             user1.addLetter(lettersBag.getRandom());
             user2.addLetter(lettersBag.getRandom());
+        }
+        for (Character c: user2.getRack()) {
+            aiUser.addLetter(c.charValue());
         }
         views = new ArrayList<>();
         this.edits = new Stack<>();
@@ -110,8 +114,49 @@ public class Board {
         }
     }
 
-    public ArrayList getBoard(){
-        return board;
+    public ArrayList<ArrayList<Box>> getBoard(){
+        return this.board;
+    }
+
+    public void AIMode(){
+        aiMode = true;
+        user2 = aiUser;
+    }
+
+    public HashSet getBestChar(){
+        HashSet<Character> bestChar = new HashSet<>();
+        for(int r = 0; r < 10; r++) {
+            for (int c = 0; c < 10; c++) {
+                if (this.board.get(r).get(c).getLetter() != '□'){
+                    if ((this.board.get(r+1).get(c).getLetter() == '□' && this.board.get(r-1).get(c).getLetter() == '□')){
+                        bestChar.add(this.board.get(r).get(c).getLetter());
+                    }
+                    else if (this.board.get(r).get(c+1).getLetter() == '□' && this.board.get(r).get(c-1).getLetter() == '□'){
+                        bestChar.add(this.board.get(r).get(c).getLetter());
+                    }
+                }
+            }
+        }
+        return bestChar;
+    }
+
+    public String getCoordChar(char letter){
+        int col = 0, row = 0;
+        for(int r = 0; r < 10; r++) {
+            for (int c = 0; c < 10; c++) {
+                if (this.board.get(r).get(c).getLetter() != '□' && this.board.get(r).get(c).getLetter() == letter){
+                    if ((this.board.get(r+1).get(c).getLetter() == '□' && this.board.get(r-1).get(c).getLetter() == '□')){
+                        row = r;
+                        col = c;
+                    }
+                    else if (this.board.get(r).get(c+1).getLetter() == '□' && this.board.get(r).get(c-1).getLetter() == '□'){
+                        row = r;
+                        col = c;
+                    }
+                }
+            }
+        }
+        return Integer.toString(row)+Integer.toString(col);
     }
 
     /**
@@ -586,12 +631,25 @@ public class Board {
         }
         edits.clear();
         if (turn1){
-            for (int i = 0; i< 7-user1.getRackSize(); i++){
+            for (int i = 0; i < 7 - user1.getRackSize(); i++) {
                 user1.addLetter(lettersBag.getRandom());
             }
             turn1 = false;
-            for(ScrabbleView v : views) {v.updateTurn("Player 2", String.valueOf(user2.getScore()));}
-            updateRack(user2);
+            if (!aiMode) {
+                for (ScrabbleView v : views) {
+                    v.updateTurn("Player 2", String.valueOf(user2.getScore()));
+                }
+                updateRack(user2);
+            }
+            else{
+                for (ScrabbleView v : views) {
+                    v.updateTurn("AI Player", String.valueOf(aiUser.getScore()));
+                }
+                updateRack(aiUser);
+                aiUser.play(this);
+                printBoard();
+            }
+
         }
         else{
             for (int i = 0; i< 7-user2.getRackSize(); i++){

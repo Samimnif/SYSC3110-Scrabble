@@ -16,12 +16,24 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
     public ScrabbleFrame(){
         super("Scrabble");
         this.setResizable(false);
+
         selectedRackButtons = new ArrayList<>(1);
         board = new Board();
         board.addScrabbleView(this);
         JPanel mainPanel = new JPanel();
         JPanel rackPanel = new JPanel();
         scoreLabel = new JLabel("Score: 0");
+
+        Object[] possibleValues = { "2-players", "AI Mode"};
+        Object selectedValue = JOptionPane.showInputDialog(null,
+                "Choose one", "Input",
+                JOptionPane.INFORMATION_MESSAGE, null,
+                possibleValues, possibleValues[0]);
+
+        if (selectedValue == possibleValues[1]){
+            board.AIMode();
+        }
+
 
         mainPanel.setLayout(new GridLayout(10,10));
 

@@ -1,9 +1,19 @@
-import java.util.ArrayList;
+import com.sun.org.apache.xpath.internal.operations.Bool;
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
-public class AIUser {
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Scanner;
+
+public class AIUser extends User{
     private Rack userRack;
     private int score;
     private Points pointSystem;
+    private int col, row;
+    private char chosenChar;
+    private ScriptObjectMirror replica;
 
     /**
      * The constructor will set important attributes.
@@ -84,8 +94,77 @@ public class AIUser {
         return score;
     }
 
-    public void play(Board gameBoard) {
+    private String findBestWord(HashSet letters){
+        String s = "";
+        String maxS = "";
+        Boolean valid = false;
+        char chosen = ' ';
+        try {
+            File myObj = new File("src/wordlist-10000.txt");
+            Scanner myReader = new Scanner(myObj);
+            while (myReader.hasNextLine()) {
+                String data = myReader.nextLine();
+                for (int j = 0; j < data.length(); j++) {
+                    if (letters.contains(data.charAt(j))) {
+                        chosen = data.charAt(j);
+                        for (int i = 0; i < data.length(); i++) {
+                            if (userRack.hasLetter(data.toUpperCase().charAt(i)) && i != j) {
+                                System.out.println("Found! "+data);
+                                valid = true;
+                                System.out.println(data);
+                            } else if (i != j) {
+                                valid = false;
+                                break;
+                            }
+                        }
+                        if (valid) {
+                            chosenChar = chosen;
+                            s = data;
+                        }
+                        if (s.length() > maxS.length()) {
+                            maxS = s;
+                        }
+                    }
+                }
+            }
+            myReader.close();
+        }
+        catch (FileNotFoundException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+        return maxS;
+    }
 
+    private void place(int x, int y, String word){
+    }
+
+    public void play(Board mainBoard){
+        HashSet<Character> bestChar = mainBoard.getBestChar();
+        ArrayList<ArrayList<Box>> replica = new ArrayList<>();
+        replica = mainBoard.getBoard();
+        String word = findBestWord(bestChar);
+        String coord = mainBoard.getCoordChar(chosenChar);
+        mainBoard.place(Integer.parseInt(coord.substring(0,1)), Integer.parseInt(coord.substring(1,2)), word,this);
+    }
+
+    public static void main(String[] args) {
+        String longestWod = "";
+        //while (longestWod.length() == 0) {
+            AIUser user = new AIUser();
+            HashSet<Character> hash = new HashSet<>();
+            hash.add('a');
+            hash.add('c');
+            hash.add('f');
+        System.out.println(hash);
+            Bag lettersBag = new Bag();
+            for (int i = 0; i < 7; i++) {
+                user.addLetter(lettersBag.getRandom());
+            }
+            longestWod = user.findBestWord(hash);
+            user.printRack();
+            System.out.println("Longest word: " + longestWod);
+       // }
     }
 }
 

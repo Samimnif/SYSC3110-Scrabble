@@ -3690,6 +3690,7 @@ fs
 ft
 ftp
 fu
+fub
 fuck
 fucked
 fucking
@@ -4110,6 +4111,7 @@ hc
 hd
 hdtv
 he
+hex
 head
 headed
 header
