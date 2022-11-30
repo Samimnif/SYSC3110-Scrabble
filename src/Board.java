@@ -8,12 +8,10 @@
  */
 
 
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
-import java.io.File;
-import java.util.Stack;
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
+import java.io.*;
+import java.util.*;
 
 public class Board {
     public static final String RESET = "\u001B[0m";
@@ -33,8 +31,11 @@ public class Board {
     private Bag lettersBag;
     private User user1;
     private User user2;
+    private AIUser aiUser;
     private String selectedRackLetter;
     private List<ScrabbleView> views;
+    private Boolean firstPlay;
+    private Boolean aiMode;
 
     /**
      * Constructor of the Board object
@@ -44,13 +45,19 @@ public class Board {
      *
      */
     public Board() {
+        aiMode = false;
+        firstPlay = true;
         selectedRackLetter = "";
         user1 = new User();
         user2 = new User();
+        aiUser = new AIUser();
         lettersBag = new Bag();
         for (int i = 0; i<7; i++){
             user1.addLetter(lettersBag.getRandom());
             user2.addLetter(lettersBag.getRandom());
+        }
+        for (Character c: user2.getRack()) {
+            aiUser.addLetter(c.charValue());
         }
         views = new ArrayList<>();
         this.edits = new Stack<>();
@@ -87,6 +94,7 @@ public class Board {
         }
     }
 
+
     /**
      * The editBoard is a method that takes a letter and its specific coordinates
      * on board and then edit the board by adding the letter in teh specific box/
@@ -106,8 +114,49 @@ public class Board {
         }
     }
 
-    public ArrayList getBoard(){
-        return board;
+    public ArrayList<ArrayList<Box>> getBoard(){
+        return this.board;
+    }
+
+    public void AIMode(){
+        aiMode = true;
+        user2 = aiUser;
+    }
+
+    public HashSet getBestChar(){
+        HashSet<Character> bestChar = new HashSet<>();
+        for(int r = 0; r < 10; r++) {
+            for (int c = 0; c < 10; c++) {
+                if (this.board.get(r).get(c).getLetter() != '□'){
+                    if ((this.board.get(r+1).get(c).getLetter() == '□' && this.board.get(r-1).get(c).getLetter() == '□')){
+                        bestChar.add(this.board.get(r).get(c).getLetter());
+                    }
+                    else if (this.board.get(r).get(c+1).getLetter() == '□' && this.board.get(r).get(c-1).getLetter() == '□'){
+                        bestChar.add(this.board.get(r).get(c).getLetter());
+                    }
+                }
+            }
+        }
+        return bestChar;
+    }
+
+    public String getCoordChar(char letter){
+        int col = 0, row = 0;
+        for(int r = 0; r < 10; r++) {
+            for (int c = 0; c < 10; c++) {
+                if (this.board.get(r).get(c).getLetter() != '□' && this.board.get(r).get(c).getLetter() == letter){
+                    if ((this.board.get(r+1).get(c).getLetter() == '□' && this.board.get(r-1).get(c).getLetter() == '□')){
+                        row = r;
+                        col = c;
+                    }
+                    else if (this.board.get(r).get(c+1).getLetter() == '□' && this.board.get(r).get(c-1).getLetter() == '□'){
+                        row = r;
+                        col = c;
+                    }
+                }
+            }
+        }
+        return Integer.toString(row)+Integer.toString(col);
     }
 
     /**
@@ -217,7 +266,6 @@ public class Board {
                 row = rowSelect;
             }
         }
-
         if (majorityV > majorityH){
             hDirection = false;
         }
@@ -301,6 +349,10 @@ public class Board {
         String word = "";
         int majorityV = 0;
         int majorityH = 0;
+        WordList checker = new WordList();
+        Boolean wordFound =false;
+        int totalEdits = edits.size();
+        int wordSize = 0;
 
         for (int i = 1; i < edits.size(); i++) {
             if (coordinates(edits.get(i))){
@@ -322,6 +374,125 @@ public class Board {
             hDirection = false;
         }
         else hDirection = true;
+
+        int count = 0;
+        while(true){
+            word = "";
+            for(int r = 0; r < boardSize; r++) {
+                for (int c = 0; c < boardSize; c++) {
+                    System.out.println("WORD: "+word);
+                    System.out.println("EDITS: "+edits);
+                    if (edits.size() == 0) break;
+                    else if (coordinates(edits.get(count))){
+                        if (columnSelect == c && rowSelect == r){
+                            temp.push(edits.remove(count));
+                            for(int i = 0; i < boardSize; i++) {
+                                if (!(word.equals("")) && this.board.get(i).get(columnSelect).getLetter() == '□'){
+                                    break;
+                                }
+                                else if (this.board.get(i).get(columnSelect).getLetter() != '□') {
+                                    word += this.board.get(i).get(columnSelect).getLetter();
+                                    int tempCol =  columnSelect;
+                                    for (int j = 0; j < edits.size(); j++) {
+                                        if(coordinates(edits.get(j))){
+                                            if (rowSelect == i && columnSelect == tempCol){
+                                                temp.push(edits.remove(j));
+                                            }
+                                        }
+                                    }
+                                    columnSelect = tempCol;
+                                }
+                                System.out.println("WORD HERE: "+word);
+                            }
+                            if(edits.size() == 0) break;
+                            if (word.length()<2){
+                                System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+                                //for (String letterCoor : temp) {
+                                //    edits.push(temp.pop());
+                                //}
+                                //break;
+                            }
+                            else if (checker.isWord(word.toLowerCase())){
+                                System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+                                for (int i = 0; i < word.length(); i++) {
+                                    user.addScore(word.charAt(i));
+                                }
+                                System.out.print(PURPLE);
+                                user.showScore();
+                                System.out.print(RESET);
+                                wordFound = true;
+                                wordSize = word.length();
+                            }
+                            word = "";
+                            for (int n = 0; n < boardSize; n++) {
+                                if (!(word.equals("")) && this.board.get(rowSelect).get(n).getLetter() == '□'){
+                                    break;
+                                }
+                                else if (this.board.get(rowSelect).get(n).getLetter() != '□') {
+                                    word += this.board.get(rowSelect).get(n).getLetter();
+                                    int tempRo =  rowSelect;
+                                    for (int i = 0; i < edits.size(); i++) {
+                                        if(coordinates(edits.get(i))){
+                                            if (rowSelect == tempRo && columnSelect == n){
+                                                temp.push(edits.remove(i));
+                                            }
+                                        }
+                                    }
+                                    rowSelect = tempRo;
+                                }
+                                System.out.println("WORD HERE: "+word);
+                            }
+                            if(edits.size() == 0) break;
+                            if (word.length()<2){
+                                System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+                                //for (String letterCoor : temp) {
+                                //    edits.push(temp.pop());
+                                //}
+                                //break;
+                            }
+                            else if (checker.isWord(word.toLowerCase())){
+                                System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+                                for (int i = 0; i < word.length(); i++) {
+                                    user.addScore(word.charAt(i));
+                                }
+                                System.out.print(PURPLE);
+                                user.showScore();
+                                System.out.print(RESET);
+                                wordFound = true;
+                                wordSize = word.length();
+                            }
+                        }
+                    }
+
+                }
+            }
+            if (word.length()<2){
+                System.out.println(RED+"Sorry you have one lonely letter"+RESET);
+                //for (String letterCoor : temp) {
+                //    edits.push(temp.pop());
+                //}
+                break;
+            }
+            else if (checker.isWord(word.toLowerCase())){
+                System.out.println(CYAN+word+" is a word! Good Job!"+RESET);
+                for (int i = 0; i < word.length(); i++) {
+                    user.addScore(word.charAt(i));
+                }
+                System.out.print(PURPLE);
+                user.showScore();
+                System.out.print(RESET);
+                wordFound = true;
+                wordSize = word.length();
+            }
+            else if(edits.size() == 0) break;
+            else{
+                System.out.println(RED+"Sorry the word doesn't exist in out dictionary"+RESET);
+                break;
+            }
+            count++;
+        }
+
+        /*
         for(int r = 0; r < boardSize; r++) {
             for (int c = 0; c < boardSize; c++) {
                 if (hDirection && r == row) {
@@ -362,7 +533,6 @@ public class Board {
                 }
             }
         }
-        WordList checker = new WordList();
         //System.out.println(word +" "+hDirection+temp);
         if (word.length()<2){
             System.out.println(RED+"Sorry you have one lonely letter"+RESET);
@@ -375,17 +545,25 @@ public class Board {
             System.out.print(PURPLE);
             user.showScore();
             System.out.print(RESET);
-
             return true;
         }
         else{
             System.out.println(RED+"Sorry the word doesn't exist in out dictionary"+RESET);
         }
+        */
         if (edits.size() > 0){
             System.out.println(RED+"Your characters are not forming a word"+RESET);
         }
         for (int i = 0; i < temp.size(); i++) {
             edits.push(temp.pop());
+        }
+        System.out.println("Word length: "+wordSize+" totaledits: "+totalEdits);
+        if (firstPlay && wordFound){
+            firstPlay = false;
+            return true;
+        }
+        else if (wordSize > totalEdits & wordFound){
+            return true;
         }
         return false;
     }
@@ -451,19 +629,32 @@ public class Board {
         }
         edits.clear();
         if (turn1){
-            for (int i = 0; i< 7-user1.getRackSize(); i++){
+            for (int i = 0; i < 7 - user1.getRackSize(); i++) {
                 user1.addLetter(lettersBag.getRandom());
             }
             turn1 = false;
-            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
-            updateRack(user2);
+            if (!aiMode) {
+                for (ScrabbleView v : views) {
+                    v.updateTurn("Player 2", String.valueOf(user2.getScore()));
+                }
+                updateRack(user2);
+            }
+            else{
+                for (ScrabbleView v : views) {
+                    v.updateTurn("AI Player", String.valueOf(aiUser.getScore()));
+                }
+                updateRack(aiUser);
+                aiUser.play(this);
+                printBoard();
+            }
+
         }
         else{
             for (int i = 0; i< 7-user2.getRackSize(); i++){
                 user2.addLetter(lettersBag.getRandom());
             }
             turn1 = true;
-            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            for(ScrabbleView v : views) {v.updateTurn("Player 1", String.valueOf(user1.getScore()));}
             updateRack(user1);
         }
     }
@@ -495,13 +686,13 @@ public class Board {
         if (turn1){
             turn1 = false;
             //printRack(user1);
-            for(ScrabbleView v : views) {v.updateTurn("Player 2");}
+            for(ScrabbleView v : views) {v.updateTurn("Player 2", String.valueOf(user2.getScore()));}
             updateRack(user2);
         }
         else{
             turn1 = true;
             //printRack(user2);
-            for(ScrabbleView v : views) {v.updateTurn("Player 1");}
+            for(ScrabbleView v : views) {v.updateTurn("Player 1",String.valueOf(user1.getScore()));}
             updateRack(user1);
         }
 
@@ -561,7 +752,7 @@ public class Board {
      * @param coordinates a string that has the coordinates in row and column
      * @return boolean, true if the coordinates are valid, false otherwise.
      */
-    public boolean coordinates(String coordinates){
+    private boolean coordinates(String coordinates){
         int c = -1;
         int r = -1;
         for (int i = 0; i < coordinates.length(); i++) {
@@ -603,6 +794,7 @@ public class Board {
      * @param user the user who submitted the command
      */
     public void place(Command command, User user){
+        System.out.println("in place #################################################################################");
         if (!coordinates(command.getThirdWord())){
             System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
         }
@@ -753,4 +945,79 @@ public class Board {
         table.play();
 
     }
+
+
+    public boolean exportScrabbleBoard(String fileName) {
+
+        String file = "C:\\CARLETON\\YEAR 3\\SYSC 3110\\Labs\\Lab 8\\AddressBook\\src\\";
+        String fullPath = file + fileName;
+        char[][] grid = new char[boardSize][boardSize];
+        for (int i = 0; i < boardSize; i++) {
+            for (int j = 0; j < boardSize; j++) {
+                grid[i][j] = this.board.get(i).get(j).getLetter(); //Gets the character/letter in each square of the board and forms a 2D char array
+            }
+        }
+
+//        for (int i = 0; i < boardSize; i++) {
+//            for (int j = 0; j < boardSize; j++) {
+//                System.out.println(" @@@@@@@@ Export:"+grid[i][j]);
+//            }
+//        }
+
+        try {
+            File newFile = new File(fullPath);
+            newFile.createNewFile();            // creates a new file automatically everytime user is prompted
+            FileOutputStream fout = new FileOutputStream(newFile);
+
+            ObjectOutputStream out = new ObjectOutputStream(fout);
+            String gridStr="a"; //Initialized to a random value
+            for (int i = 0; i < boardSize; i++) {
+                gridStr = gridStr + "\n";       //Line break after each row of the board
+                for (int j = 0; j < boardSize; j++) {
+                    gridStr = gridStr + grid[i][j]+ "#"; //Adds delimiter # after each item in a row
+                }
+            }
+
+            out.writeObject(gridStr);      // writing contents of grid array into the file
+            out.flush();
+            out.close();        //closing the stream
+            System.out.println("gridStr exported to file  :"+gridStr);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return true;
+    }
+
+    public char[][] importScrabbleBoard(String fileName) {
+        String path = "C:\\CARLETON\\YEAR 3\\SYSC 3110\\Labs\\Lab 8\\AddressBook\\src\\";
+        File f1 = new File(path + fileName);
+        char[][] grid = new char[boardSize][boardSize];
+        try {
+            BufferedReader buff = new BufferedReader(new FileReader(f1));
+            String s = buff.readLine(); // Reads the first line in the file and ignores it
+            int row = 0;
+            String[] result = null;
+            while ((s = buff.readLine()) != null) {     //Buffered reader reads from the exported file and assigns each row to String 's'
+                result = s.split("#"); //Splits the string using delimiter '#' and stores to String array 'result'
+                for(int i=0;i<boardSize;i++){
+                    grid[row][i] = result[i].charAt(0); //Converts the string in result array to character and
+                                                        // Recreates the Grid array
+                }
+                row++;
+            }
+            buff.close();
+            for (int i = 0; i < boardSize; i++) {
+                for (int j = 0; j < boardSize; j++) {
+                    if(grid[i][j] == '□') { //No need to update empty squares
+                    }else{
+                        editBoard(j, i, grid[i][j]); // Updates only those squares with a letter on it
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return grid;
+    }
+
 }
