@@ -11,6 +11,7 @@
 import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.io.*;
+import java.sql.Array;
 import java.util.*;
 
 public class Board {
@@ -37,6 +38,8 @@ public class Board {
     private Boolean firstPlay;
     private Boolean aiMode;
 
+   private LinkedHashMap<String, Character> redoMap; //Stores the coordinates and letters that were removed from the board (back command)
+
     /**
      * Constructor of the Board object
      * Creates a 10x10 board
@@ -52,6 +55,7 @@ public class Board {
         user2 = new User();
         aiUser = new AIUser();
         lettersBag = new Bag();
+        redoMap = new LinkedHashMap<String, Character>(7);
         for (int i = 0; i<7; i++){
             user1.addLetter(lettersBag.getRandom());
             user2.addLetter(lettersBag.getRandom());
@@ -574,9 +578,12 @@ public class Board {
      * @param user the user object that placed the letters on board
      */
     private void charBack(User user){
+        redoMap = new LinkedHashMap<String, Character>(7);
         if (edits.size() > 0){
             if(coordinates(edits.pop())){
                 user.addLetter(this.board.get(rowSelect).get(columnSelect).getLetter());
+                //added
+                redoMap.put(rowSelect +""+ columnSelect, this.board.get(rowSelect).get(columnSelect).getLetter());
                 this.board.get(rowSelect).get(columnSelect).setLetter('□');
             }
         }
@@ -584,15 +591,28 @@ public class Board {
     }
 
     public void charBack(){
+
         User user;
-        if (turn1) user = user1;
-        else user = user2;
+        if (turn1){
+            user = user1;
+           // redoMap = new LinkedHashMap<String, Character>(7);
+        }
+        else{
+            user = user2;
+            //redoMap = new LinkedHashMap<String, Character>(7);
+        }
         System.out.println("Edits size: "+edits.size());
 
         if (edits.size() > 0){
             if(coordinates(edits.pop())){
                 System.out.println(this.board.get(rowSelect).get(columnSelect).getLetter());
                 user.addLetter(this.board.get(rowSelect).get(columnSelect).getLetter());
+
+                //added - concatenates row and column to form the key using delimiter
+                //redoMap is defined at field level so that all values that were put back to rack and stored
+
+                redoMap.put(rowSelect +":"+ columnSelect, this.board.get(rowSelect).get(columnSelect).getLetter());  //-----------
+
                 this.board.get(rowSelect).get(columnSelect).setLetter('□');
                 for(ScrabbleView v : views) {v.update(new ScrabbleEvent (this, rowSelect, columnSelect, ' '));}
                 updateRack(user);
@@ -601,6 +621,52 @@ public class Board {
         else System.out.println(RED+"You didn't place any letters"+RESET);
     }
 
+
+    public void redo(){
+
+        //Currently LinkedHashMap redoMap contains all the letters that were moved back to the rack
+        String [] redoKeySetArray = new String[3];
+        Set<String> redoKeySet = redoMap.keySet();
+        redoKeySetArray = redoKeySet.toArray(new String[0]); //Gets all the keys in redoMap, and converts the Set to array
+                                            // to iterate in reverse order, ie to put back the last removed item first
+        String key  = "";
+        char letterValue;
+        String[] result;
+        System.out.print( "key set---- " + redoKeySetArray);
+
+
+        for( int i = redoKeySetArray.length -1; i >= 0 ; i-- ) { // Iterates from last item in array to the first
+            key= redoKeySetArray[i]; //i is the last item now, so gets the last item in the array
+
+            letterValue = redoMap.get(key); //Gets the letter corresponding to the key
+            System.out.print(key + "key---- " + letterValue);
+            result = key.split(":"); //Splits the key as its formed by concatenating the row:col
+            rowSelect = Integer.parseInt(result[0]);
+            columnSelect = Integer.parseInt(result[1]);
+
+            for(ScrabbleView v : views) {
+                if(turn1) {
+                    if (user1.hasLetter(letterValue)) {
+                        user1.removeLetter(letterValue);
+                    }
+                    updateRack(user1);
+                }
+                else{
+                    if (user2.hasLetter(letterValue)) {
+                        user2.removeLetter(letterValue);
+                    }
+                    updateRack(user2);
+                }
+                v.update(new ScrabbleEvent (this, rowSelect, columnSelect, letterValue));
+            }
+            break;
+        }
+        redoMap.remove(key);
+
+    }
+
+
+
     /**
      * the switchTurn method switches users turns. It makes sure that the current playing user
      * gets its rack filled before switching to th next user.
@@ -608,6 +674,7 @@ public class Board {
      * @param user the user object that was currently playing
      */
     private void switchTurn(User user){
+        redoMap = new LinkedHashMap<String, Character>(7);
         if (user.getRackSize() < 7){
             for (int i = 0; i < 7-user.getRackSize(); i++) {
                 user.addLetter(lettersBag.getRandom());
@@ -619,6 +686,7 @@ public class Board {
     }
 
     public void switchTurn(){
+        redoMap = new LinkedHashMap<String, Character>(7);
         User user;
         if (turn1) user = user1;
         else user = user2;
@@ -668,6 +736,8 @@ public class Board {
      */
     private void pass(User user){
         int size = edits.size();
+        //added
+        redoMap = new LinkedHashMap<String, Character>(7);
         for (int i = 0; i < size; i++) {
             charBack(user);
         }
@@ -679,6 +749,7 @@ public class Board {
 
     public void pass(){
         int size = edits.size();
+        redoMap = new LinkedHashMap<String, Character>(7);
         for (int i = 0; i < size; i++) {
             charBack();
         }
@@ -794,7 +865,6 @@ public class Board {
      * @param user the user who submitted the command
      */
     public void place(Command command, User user){
-        System.out.println("in place #################################################################################");
         if (!coordinates(command.getThirdWord())){
             System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
         }
@@ -946,10 +1016,9 @@ public class Board {
 
     }
 
-
     public boolean exportScrabbleBoard(String fileName) {
 
-        String file = "C:\\CARLETON\\YEAR 3\\SYSC 3110\\Labs\\Lab 8\\AddressBook\\src\\";
+        String file = "src\\" + fileName;
         String fullPath = file + fileName;
         char[][] grid = new char[boardSize][boardSize];
         for (int i = 0; i < boardSize; i++) {
@@ -958,11 +1027,6 @@ public class Board {
             }
         }
 
-//        for (int i = 0; i < boardSize; i++) {
-//            for (int j = 0; j < boardSize; j++) {
-//                System.out.println(" @@@@@@@@ Export:"+grid[i][j]);
-//            }
-//        }
 
         try {
             File newFile = new File(fullPath);
@@ -989,7 +1053,8 @@ public class Board {
     }
 
     public char[][] importScrabbleBoard(String fileName) {
-        String path = "C:\\CARLETON\\YEAR 3\\SYSC 3110\\Labs\\Lab 8\\AddressBook\\src\\";
+
+        String path = "src\\" + fileName;
         File f1 = new File(path + fileName);
         char[][] grid = new char[boardSize][boardSize];
         try {
