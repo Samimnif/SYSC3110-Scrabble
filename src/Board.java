@@ -129,10 +129,10 @@ public class Board {
             for (int c = 0; c < 10; c++) {
                 if (this.board.get(r).get(c).getLetter() != '□'){
                     if ((this.board.get(r+1).get(c).getLetter() == '□' && this.board.get(r-1).get(c).getLetter() == '□')){
-                        bestChar.add(this.board.get(r).get(c).getLetter());
+                        bestChar.add(Character.toLowerCase(this.board.get(r).get(c).getLetter()));
                     }
                     else if (this.board.get(r).get(c+1).getLetter() == '□' && this.board.get(r).get(c-1).getLetter() == '□'){
-                        bestChar.add(this.board.get(r).get(c).getLetter());
+                        bestChar.add(Character.toLowerCase(this.board.get(r).get(c).getLetter()));
                     }
                 }
             }
