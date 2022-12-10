@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class ScrabbleFrame extends JFrame implements ScrabbleView{
@@ -51,6 +52,9 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
 
         JMenuItem back = new JMenuItem("Back");
         JMenuItem submit = new JMenuItem("Submit");
+        JMenuItem export = new JMenuItem("Export");
+        JMenuItem importBoard = new JMenuItem("Import");
+        JMenuItem redo = new JMenuItem("Redo");
         JMenuItem pass = new JMenuItem("Pass");
         JMenuItem exit = new JMenuItem("Exit");
 
@@ -84,10 +88,42 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
                 System.exit(0);
             }
         });
+        export.addActionListener(new ActionListener(){
+            @Override public void actionPerformed(ActionEvent e) {
+                try {
+                    exportBoard();}
+                catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
+        );
+        importBoard.addActionListener(new ActionListener(){
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                try {
+                    importBoard();
+                    lockSubmission();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
+        );
+        redo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                board.redo();
+            }
+        });
 
         menu.add(back);
         menu.add(submit);
         menu.add(pass);
+        menu.add(redo);
+        menu.add(export);
+        menu.add(importBoard);
         menu.add(exit);
 
         menubar.add(menu);
@@ -191,6 +227,27 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
     public void updateTurn(String turn, String score) {
         scoreLabel.setText("Score: "+score);
         rackLabel.setText(turn+" rack: ");
+    }
+
+    public void exportBoard() throws IOException {
+        //board = new Board();
+        ImageIcon icon = new ImageIcon("/book.gif", "");
+        Object[] possibilities = null;  // Drop-down with options
+
+        String fileName = (String)JOptionPane.showInputDialog(this,"Enter the name of file" , "Customized Dialog",
+                JOptionPane.PLAIN_MESSAGE, icon, possibilities,"");
+
+        board.exportScrabbleBoard(fileName); //Adds newly added buddy to the JList
+    }
+    public void importBoard() throws IOException {
+
+        ImageIcon icon = new ImageIcon("/book.gif", "");
+        Object[] possibilities = null;  // Drop-down with options
+
+        String fileName = (String)JOptionPane.showInputDialog(this,"Enter the name of file" , "Customized Dialog",
+                JOptionPane.PLAIN_MESSAGE, icon, possibilities,"");
+
+        board.importScrabbleBoard(fileName); //Adds newly added buddy to the JList
     }
 
     public static void main(String[] args) {

@@ -100,6 +100,7 @@ public class AIUser extends User{
         Boolean valid = false;
         char chosen = ' ';
         System.out.println("here");
+        ArrayList<Character> replica = userRack.getRack();
         try {
             File myObj = new File("src/wordlist-10000.txt");
             Scanner myReader = new Scanner(myObj);
@@ -107,13 +108,17 @@ public class AIUser extends User{
                 String data = myReader.nextLine();
                 for (int j = 0; j < data.length(); j++) {
                     if (letters.contains(data.charAt(j))) {
-                        chosen = data.charAt(j);
+                        chosen = data.toUpperCase().charAt(j);
                         for (int i = 0; i < data.length(); i++) {
-                            if (userRack.hasLetter(data.toUpperCase().charAt(i)) && i != j) {
+                            if (replica.contains(data.toUpperCase().charAt(i)) && i != j) {
+                                System.out.println(replica+" "+data.toUpperCase().charAt(i));
+                                if (i >= replica.size()) break;
+                                replica.remove(i);
                                 System.out.println("Found! "+data);
                                 valid = true;
                                 System.out.println(data);
                             } else if (i != j) {
+                                replica = userRack.getRack();
                                 valid = false;
                                 break;
                             }
@@ -149,13 +154,24 @@ public class AIUser extends User{
         String word = findBestWord(bestChar);
         String coord = mainBoard.getCoordChar(chosenChar);
         System.out.println("AI chose: "+ word);
-        System.out.println(coord);
+        System.out.println("Coord: "+coord);
         if (word.equals("")){
             mainBoard.pass();
             return;
         }
-        for (int i = 0; i < word.length(); i++) {
-            mainBoard.place(Integer.parseInt(coord.substring(0,1))+i, Integer.parseInt(coord.substring(1,2)), String.valueOf(word.charAt(i)).toUpperCase(),this);
+        System.out.println(Integer.parseInt(coord.substring(0,1))+" "+Integer.parseInt(coord.substring(1,2))+ " "+Integer.parseInt(coord.substring(2,3)));
+        if (coord.substring(2,3).equals("0")){
+            System.out.println("here");
+            for (int i = 0; i < word.length(); i++) {
+                System.out.println(Integer.parseInt(coord.substring(0,1))+" "+Integer.parseInt(coord.substring(1,2))+i+" "+ String.valueOf(word.charAt(i)).toUpperCase());
+                mainBoard.AIplace(Integer.parseInt(coord.substring(0,1)), Integer.parseInt(coord.substring(1,2))+i, String.valueOf(word.charAt(i)).toUpperCase());
+            }
+        }
+        else{
+            System.out.println("here2");
+            for (int i = 0; i < word.length(); i++) {
+                mainBoard.AIplace(Integer.parseInt(coord.substring(0,1))+i, Integer.parseInt(coord.substring(1,2)), String.valueOf(word.charAt(i)).toUpperCase());
+            }
         }
 
     }
@@ -165,16 +181,15 @@ public class AIUser extends User{
         //while (longestWod.length() == 0) {
             AIUser user = new AIUser();
             HashSet<Character> hash = new HashSet<>();
-            hash.add('x');
-            hash.add('j');
-            hash.add('m');
-            hash.add('n');
-            hash.add('o');
+            hash.add('a');
+            hash.add('b');
+            hash.add('h');
         System.out.println(hash);
             Bag lettersBag = new Bag();
             for (int i = 0; i < 7; i++) {
                 user.addLetter(lettersBag.getRandom());
             }
+            user.printRack();
             longestWod = user.findBestWord(hash);
             user.printRack();
             System.out.println("Longest word: " + longestWod);

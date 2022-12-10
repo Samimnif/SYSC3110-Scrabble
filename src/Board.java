@@ -10,9 +10,8 @@
 
 import com.sun.org.apache.xpath.internal.operations.Bool;
 
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.*;
-import java.io.File;
 
 public class Board {
     public static final String RESET = "\u001B[0m";
@@ -37,6 +36,7 @@ public class Board {
     private List<ScrabbleView> views;
     private Boolean firstPlay;
     private Boolean aiMode;
+    private LinkedHashMap<String, Character> redoMap; //Stores the coordinates and letters that were removed from the board (back command)
 
     /**
      * Constructor of the Board object
@@ -49,6 +49,7 @@ public class Board {
         aiMode = false;
         firstPlay = true;
         selectedRackLetter = "";
+        redoMap = new LinkedHashMap<String, Character>(7);
         user1 = new User();
         user2 = new User();
         aiUser = new AIUser();
@@ -141,22 +142,27 @@ public class Board {
     }
 
     public String getCoordChar(char letter){
-        int col = 0, row = 0;
+        int col = 0, row = 0, hv = 0;
         for(int r = 0; r < 10; r++) {
             for (int c = 0; c < 10; c++) {
+                System.out.println(this.board.get(r).get(c).getLetter());
                 if (this.board.get(r).get(c).getLetter() != '□' && this.board.get(r).get(c).getLetter() == letter){
+                    System.out.println("found "+r+" "+c);
                     if ((this.board.get(r+1).get(c).getLetter() == '□' && this.board.get(r-1).get(c).getLetter() == '□')){
                         row = r;
                         col = c;
+                        hv = 1;
                     }
                     else if (this.board.get(r).get(c+1).getLetter() == '□' && this.board.get(r).get(c-1).getLetter() == '□'){
                         row = r;
                         col = c;
+                        hv = 0;
                     }
                 }
             }
         }
-        return Integer.toString(row)+Integer.toString(col);
+        System.out.println("coord: "+row + " "+col);
+        return Integer.toString(row)+Integer.toString(col)+Integer.toString(hv);
     }
 
     /**
@@ -576,6 +582,7 @@ public class Board {
      * @param user the user object that placed the letters on board
      */
     private void charBack(User user){
+        redoMap = new LinkedHashMap<String, Character>(7);
         if (edits.size() > 0){
             if(coordinates(edits.pop())){
                 user.addLetter(this.board.get(rowSelect).get(columnSelect).getLetter());
@@ -603,6 +610,49 @@ public class Board {
         else System.out.println(RED+"You didn't place any letters"+RESET);
     }
 
+    public void redo(){
+
+        //Currently LinkedHashMap redoMap contains all the letters that were moved back to the rack
+        String [] redoKeySetArray = new String[3];
+        Set<String> redoKeySet = redoMap.keySet();
+        redoKeySetArray = redoKeySet.toArray(new String[0]); //Gets all the keys in redoMap, and converts the Set to array
+        // to iterate in reverse order, ie to put back the last removed item first
+        String key  = "";
+        char letterValue;
+        String[] result;
+        System.out.print( "key set---- " + redoKeySetArray);
+
+
+        for( int i = redoKeySetArray.length -1; i >= 0 ; i-- ) { // Iterates from last item in array to the first
+            key= redoKeySetArray[i]; //i is the last item now, so gets the last item in the array
+
+            letterValue = redoMap.get(key); //Gets the letter corresponding to the key
+            System.out.print(key + "key---- " + letterValue);
+            result = key.split(":"); //Splits the key as its formed by concatenating the row:col
+            rowSelect = Integer.parseInt(result[0]);
+            columnSelect = Integer.parseInt(result[1]);
+
+            for(ScrabbleView v : views) {
+                if(turn1) {
+                    if (user1.hasLetter(letterValue)) {
+                        user1.removeLetter(letterValue);
+                    }
+                    updateRack(user1);
+                }
+                else{
+                    if (user2.hasLetter(letterValue)) {
+                        user2.removeLetter(letterValue);
+                    }
+                    updateRack(user2);
+                }
+                v.update(new ScrabbleEvent (this, rowSelect, columnSelect, letterValue));
+            }
+            break;
+        }
+        redoMap.remove(key);
+
+    }
+
     /**
      * the switchTurn method switches users turns. It makes sure that the current playing user
      * gets its rack filled before switching to th next user.
@@ -610,6 +660,7 @@ public class Board {
      * @param user the user object that was currently playing
      */
     private void switchTurn(User user){
+        redoMap = new LinkedHashMap<String, Character>(7);
         if (user.getRackSize() < 7){
             for (int i = 0; i < 7-user.getRackSize(); i++) {
                 user.addLetter(lettersBag.getRandom());
@@ -621,6 +672,7 @@ public class Board {
     }
 
     public void switchTurn(){
+        redoMap = new LinkedHashMap<String, Character>(7);
         User user;
         if (turn1) user = user1;
         else user = user2;
@@ -670,6 +722,7 @@ public class Board {
      */
     private void pass(User user){
         int size = edits.size();
+        redoMap = new LinkedHashMap<String, Character>(7);
         for (int i = 0; i < size; i++) {
             charBack(user);
         }
@@ -680,6 +733,7 @@ public class Board {
     }
 
     public void pass(){
+        redoMap = new LinkedHashMap<String, Character>(7);
         int size = edits.size();
         for (int i = 0; i < size; i++) {
             charBack();
@@ -821,17 +875,40 @@ public class Board {
     }
 
     public boolean place(int row, int col, String letter, User user){
+        user.printRack();
         if (!coordinates(row, col)){
             System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
         }
         else{
             for (int i = 0; i < letter.length(); i++) {
-                if(user.hasLetter(letter.toUpperCase().charAt(i)) && isEmpty(columnSelect, rowSelect)){
-                    editBoard(columnSelect, rowSelect, letter.charAt(i));
-                    edits.push(Integer.toString(rowSelect)+column[columnSelect]);
+                if(user.hasLetter(letter.toUpperCase().charAt(i)) && isEmpty(col, row)){
+                    editBoard(col, row, letter.charAt(i));
+                    edits.push(Integer.toString(row)+column[col]);
                     user.removeLetter(letter.toUpperCase().charAt(i));
                 }
                 else if (!(user.hasLetter(letter.toUpperCase().charAt(i)))){
+                    return false;
+                }
+                else{
+                    break;
+                }
+            }
+        }
+        return true;
+    }
+    public boolean AIplace(int row, int col, String letter){
+        System.out.println(row + " "+ col);
+        if (!coordinates(row, col)){
+            System.out.println(RED+"Sorry the coordinates are wrong"+RESET);
+        }
+        else{
+            for (int i = 0; i < letter.length(); i++) {
+                if(true){
+                    editBoard(col, row, letter.charAt(i));
+                    edits.push(Integer.toString(row)+column[col]);
+                    aiUser.removeLetter(letter.toUpperCase().charAt(i));
+                }
+                else if (!(aiUser.hasLetter(letter.toUpperCase().charAt(i)))){
                     return false;
                 }
                 else{
@@ -919,6 +996,75 @@ public class Board {
 
     public void addScrabbleView(ScrabbleView v) {
         views.add(v);
+    }
+
+    public boolean exportScrabbleBoard(String fileName) {
+
+        String file = "src\\" + fileName;
+        String fullPath = file + fileName;
+        char[][] grid = new char[boardSize][boardSize];
+        for (int i = 0; i < boardSize; i++) {
+            for (int j = 0; j < boardSize; j++) {
+                grid[i][j] = this.board.get(i).get(j).getLetter(); //Gets the character/letter in each square of the board and forms a 2D char array
+            }
+        }
+
+
+        try {
+            File newFile = new File(fullPath);
+            newFile.createNewFile();            // creates a new file automatically everytime user is prompted
+            FileOutputStream fout = new FileOutputStream(newFile);
+
+            ObjectOutputStream out = new ObjectOutputStream(fout);
+            String gridStr="a"; //Initialized to a random value
+            for (int i = 0; i < boardSize; i++) {
+                gridStr = gridStr + "\n";       //Line break after each row of the board
+                for (int j = 0; j < boardSize; j++) {
+                    gridStr = gridStr + grid[i][j]+ "#"; //Adds delimiter # after each item in a row
+                }
+            }
+
+            out.writeObject(gridStr);      // writing contents of grid array into the file
+            out.flush();
+            out.close();        //closing the stream
+            System.out.println("gridStr exported to file  :"+gridStr);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return true;
+    }
+
+    public char[][] importScrabbleBoard(String fileName) {
+
+        String path = "src\\" + fileName;
+        File f1 = new File(path + fileName);
+        char[][] grid = new char[boardSize][boardSize];
+        try {
+            BufferedReader buff = new BufferedReader(new FileReader(f1));
+            String s = buff.readLine(); // Reads the first line in the file and ignores it
+            int row = 0;
+            String[] result = null;
+            while ((s = buff.readLine()) != null) {     //Buffered reader reads from the exported file and assigns each row to String 's'
+                result = s.split("#"); //Splits the string using delimiter '#' and stores to String array 'result'
+                for(int i=0;i<boardSize;i++){
+                    grid[row][i] = result[i].charAt(0); //Converts the string in result array to character and
+                    // Recreates the Grid array
+                }
+                row++;
+            }
+            buff.close();
+            for (int i = 0; i < boardSize; i++) {
+                for (int j = 0; j < boardSize; j++) {
+                    if(grid[i][j] == '□') { //No need to update empty squares
+                    }else{
+                        editBoard(j, i, grid[i][j]); // Updates only those squares with a letter on it
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return grid;
     }
 
     public static void main(String[] args) {
