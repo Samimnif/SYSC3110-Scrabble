@@ -55,6 +55,7 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
         JMenuItem pass = new JMenuItem("Pass");
         JMenuItem export = new JMenuItem("Export");
         JMenuItem importBoard = new JMenuItem("Import");
+        JMenuItem redo = new JMenuItem("Redo");
         JMenuItem exit = new JMenuItem("Exit");
 
         back.addActionListener(new ActionListener() {
@@ -105,6 +106,7 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
                                      {
                                          try {
                                              importBoard();
+                                             lockSubmission();
                                          } catch (IOException ex) {
                                              throw new RuntimeException(ex);
                                          }
@@ -112,11 +114,19 @@ public class ScrabbleFrame extends JFrame implements ScrabbleView{
                                  }
         );
 
+        redo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                board.redo();
+            }
+        });
+
         menu.add(back);
         menu.add(submit);
         menu.add(pass);
         menu.add(export);
         menu.add(importBoard);
+        menu.add(redo);
         menu.add(exit);
 
         menubar.add(menu);
